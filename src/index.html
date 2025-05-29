@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Amplify Auth Demo</title>
+</head>
+<body>
+  <h1>Welcome to Amplify Auth Demo</h1>
+
+  <button onclick="signInWithHostedUI()">Sign In with Google</button>
+  <button onclick="signOut()">Sign Out</button>
+
+  <p id="status">Status: Not signed in</p>
+
+  <script src="https://unpkg.com/aws-amplify@5.0.0/dist/aws-amplify.min.js"></script>
+  <script src="./auth.js"></script>
+</body>
+</html>
