@@ -1,0 +1,11 @@
+type Patient @model @auth(rules: [{ allow: owner }, { allow: private }]) {
+  id: ID!
+  name: String!
+  dateOfBirth: AWSDate!
+  gender: String
+  contactNumber: String
+  email: String
+  createdBy: String
+  createdAt: AWSDateTime
+  updatedAt: AWSDateTime
+}
