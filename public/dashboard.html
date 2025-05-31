@@ -40,7 +40,7 @@
   </div>
 
   <script type="module">
-    import * as dashboard from '/src/dashboard.js';
+    import * as dashboard from '/dashboard.js';
     window.dashboard = dashboard;
     window.addPatient = dashboard.addPatient;
   </script>
@@ -71,7 +71,7 @@
         const email = document.getElementById('patient-email').value;
         const phone = document.getElementById('patient-phone').value;
 
-        import('/src/dashboard.js').then(module => {
+        import('/dashboard.js').then(module => {
           if (typeof module.addPatient === 'function') {
             module.addPatient({ name, dob, email, phone });
             
