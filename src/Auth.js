@@ -35,8 +35,7 @@ async function handleLogin() {
   try {
     await signIn({ username: email, password });
     const user = await getCurrentUser();
-    showView('dashboard-view');
-    document.getElementById('user-info').textContent = `Welcome, ${user.username}`;
+    window.location.href = 'dashboard.html';
   } catch (err) {
     showToast(`Login failed: ${err.message}`, false);
   }
@@ -125,8 +124,7 @@ async function checkSession() {
     const session = await fetchAuthSession();
     if (session) {
       const user = await getCurrentUser();
-      document.getElementById('user-info').textContent = `Welcome, ${user.username}`;
-      showView('dashboard-view');
+      window.location.href = 'dashboard.html';
     }
   } catch {
     showView('login-view');
