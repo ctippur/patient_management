@@ -1,159 +1,261 @@
-// src/Auth.js
+// Auth.js - Authentication module
 import { Amplify } from 'aws-amplify';
 import {
-  fetchAuthSession,
   signIn,
-  signInWithRedirect,
-  signOut,
-  getCurrentUser,
   signUp,
   confirmSignUp,
   resetPassword,
-  confirmResetPassword
+  confirmResetPassword,
+  signOut,
+  getCurrentUser
 } from 'aws-amplify/auth';
-import outputs from '../amplify_outputs';
-console.log(outputs);
-Amplify.configure(outputs);
+import config from '../amplify_outputs.json';
 
-function showView(id) {
-  document.querySelectorAll('.auth-view').forEach((el) => el.classList.add('d-none'));
-  document.getElementById(id).classList.remove('d-none');
-}
+// Configure Amplify
+Amplify.configure(config);
 
-function showToast(message, isSuccess = true) {
+// Show toast notification
+function showToast(message, isError = false) {
   const toast = document.getElementById('toast');
-  toast.className = `toast align-items-center text-white ${isSuccess ? 'bg-success' : 'bg-danger'} show`;
-  toast.querySelector('.toast-body').textContent = message;
-  setTimeout(() => toast.classList.remove('show'), 4000);
+  if (!toast) return;
+  
+  toast.classList.toggle('text-bg-danger', isError);
+  toast.classList.toggle('text-bg-primary', !isError);
+  
+  const toastBody = toast.querySelector('.toast-body');
+  if (toastBody) toastBody.textContent = message;
+  
+  const bsToast = new bootstrap.Toast(toast);
+  bsToast.show();
 }
 
-// ========== LOGIN ==========
+// Show a specific view and hide others
+function showView(viewId) {
+  document.querySelectorAll('.auth-view').forEach(view => {
+    view.classList.add('d-none');
+  });
+  const view = document.getElementById(viewId);
+  if (view) view.classList.remove('d-none');
+}
+
+// Handle login
 async function handleLogin() {
-  const email = document.getElementById('login-email').value;
-  const password = document.getElementById('login-password').value;
-
-  // In your login handler, add this debugging code
   try {
-    const result = await Auth.signIn(username, password);
-    console.log('Sign in successful', result);
-  } catch (error) {
-    console.error('Error signing in:', error.message, error.code);
-    // Show more specific error message to the user based on error.code
-  }
-
-
-  try {
-    await signIn({ username: email, password });
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    if (!email || !password) {
+      showToast('Please enter both email and password', true);
+      return;
+    }
+    
+    console.log('Attempting to sign in user:', email);
+    const result = await signIn({ username: email, password });
+    console.log('Sign in successful');
+    
+    showToast('Login successful!');
+    showView('dashboard-view');
+    
+    // Display user info
     const user = await getCurrentUser();
-    window.location.href = 'dashboard.html';
-  } catch (err) {
-    showToast(`Login failed: ${err.message}`, false);
+    const userInfo = document.getElementById('user-info');
+    if (userInfo) {
+      userInfo.textContent = `Logged in as: ${user.signInDetails?.loginId || user.username}`;
+    }
+    
+    // Redirect to dashboard after short delay
+    setTimeout(() => {
+      window.location.href = '/public/dashboard.html';
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Error signing in:', error.message);
+    showToast(`Login failed: ${error.message}`, true);
   }
 }
 
-// ========== GOOGLE LOGIN ==========
-async function handleGoogleLogin() {
-  try {
-    await signInWithRedirect({ provider: 'Google' });
-  } catch (err) {
-    showToast(`Google login failed: ${err.message}`, false);
-  }
-}
-
-// ========== SIGNUP ==========
+// Handle registration
 async function handleRegister() {
-  const email = document.getElementById('register-email').value;
-  const password = document.getElementById('register-password').value;
-
   try {
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    
+    if (!email || !password) {
+      showToast('Please enter both email and password', true);
+      return;
+    }
+    
     await signUp({
       username: email,
       password,
       options: {
         userAttributes: {
-          email,
+          email
         },
-      },
+        autoSignIn: true
+      }
     });
-    showToast('Verification code sent to email. Confirm below.');
+    
+    showToast('Registration successful! Please check your email for verification code.');
+    
+    // Pre-fill email in confirmation form
+    const confirmEmail = document.getElementById('confirm-email');
+    if (confirmEmail) confirmEmail.value = email;
+    
     showView('confirm-view');
-  } catch (err) {
-    showToast(`Registration failed: ${err.message}`, false);
+  } catch (error) {
+    console.error('Error signing up:', error.message);
+    showToast(`Registration failed: ${error.message}`, true);
   }
 }
 
-async function handleConfirmSignup() {
-  const email = document.getElementById('confirm-email').value;
-  const code = document.getElementById('confirm-code').value;
-
+// Handle confirmation
+async function handleConfirm() {
   try {
-    await confirmSignUp({ username: email, confirmationCode: code });
-    showToast('Email confirmed! You may now log in.');
-    showView('login-view');
-  } catch (err) {
-    showToast(`Confirmation failed: ${err.message}`, false);
-  }
-}
-
-// ========== RESET PASSWORD ==========
-async function handleRequestReset() {
-  const email = document.getElementById('reset-email').value;
-  try {
-    await resetPassword({ username: email });
-    showToast('Reset code sent. Enter it below.');
-    showView('reset-confirm-view');
-  } catch (err) {
-    showToast(`Reset failed: ${err.message}`, false);
-  }
-}
-
-async function handleConfirmReset() {
-  const email = document.getElementById('reset-confirm-email').value;
-  const code = document.getElementById('reset-code').value;
-  const newPassword = document.getElementById('reset-new-password').value;
-
-  try {
-    await confirmResetPassword({ username: email, confirmationCode: code, newPassword });
-    showToast('Password updated! You may now log in.');
-    showView('login-view');
-  } catch (err) {
-    showToast(`Password reset failed: ${err.message}`, false);
-  }
-}
-
-// ========== LOGOUT ==========
-async function handleLogout() {
-  await signOut();
-  showToast('Signed out');
-  showView('login-view');
-}
-
-// ========== CHECK SESSION ==========
-async function checkSession() {
-  try {
-    const session = await fetchAuthSession();
-    if (session) {
-      const user = await getCurrentUser();
-      window.location.href = 'dashboard.html';
+    const email = document.getElementById('confirm-email').value;
+    const code = document.getElementById('confirm-code').value;
+    
+    if (!email || !code) {
+      showToast('Please enter both email and verification code', true);
+      return;
     }
-  } catch {
+    
+    await confirmSignUp({
+      username: email,
+      confirmationCode: code
+    });
+    
+    showToast('Email confirmed! You can now login.');
+    showView('login-view');
+  } catch (error) {
+    console.error('Error confirming sign up:', error.message);
+    showToast(`Confirmation failed: ${error.message}`, true);
+  }
+}
+
+// Handle password reset request
+async function handleResetRequest() {
+  try {
+    const email = document.getElementById('reset-email').value;
+    
+    if (!email) {
+      showToast('Please enter your email', true);
+      return;
+    }
+    
+    await resetPassword({ username: email });
+    
+    showToast('Reset code sent! Check your email.');
+    
+    // Pre-fill email in reset confirmation form
+    const resetConfirmEmail = document.getElementById('reset-confirm-email');
+    if (resetConfirmEmail) resetConfirmEmail.value = email;
+    
+    showView('reset-confirm-view');
+  } catch (error) {
+    console.error('Error requesting password reset:', error.message);
+    showToast(`Reset request failed: ${error.message}`, true);
+  }
+}
+
+// Handle password reset confirmation
+async function handleResetConfirm() {
+  try {
+    const email = document.getElementById('reset-confirm-email').value;
+    const code = document.getElementById('reset-code').value;
+    const newPassword = document.getElementById('reset-new-password').value;
+    
+    if (!email || !code || !newPassword) {
+      showToast('Please fill all fields', true);
+      return;
+    }
+    
+    await confirmResetPassword({
+      username: email,
+      confirmationCode: code,
+      newPassword
+    });
+    
+    showToast('Password updated successfully! You can now login.');
+    showView('login-view');
+  } catch (error) {
+    console.error('Error confirming password reset:', error.message);
+    showToast(`Password reset failed: ${error.message}`, true);
+  }
+}
+
+// Handle logout
+async function handleLogout() {
+  try {
+    await signOut();
+    showToast('Logged out successfully!');
+    showView('login-view');
+  } catch (error) {
+    console.error('Error signing out:', error.message);
+    showToast(`Logout failed: ${error.message}`, true);
+  }
+}
+
+// Check if user is already logged in
+async function checkAuthState() {
+  try {
+    const user = await getCurrentUser();
+    console.log('User is signed in:', user);
+    
+    // Display user info
+    const userInfo = document.getElementById('user-info');
+    if (userInfo) {
+      userInfo.textContent = `Logged in as: ${user.signInDetails?.loginId || user.username}`;
+    }
+    
+    // Redirect to dashboard
+    window.location.href = '/public/dashboard.html';
+  } catch (error) {
+    console.log('User is not signed in');
     showView('login-view');
   }
 }
 
-// ========== INIT ==========
+// Initialize event listeners when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('login-btn').addEventListener('click', handleLogin);
-  document.getElementById('google-btn').addEventListener('click', handleGoogleLogin);
-  document.getElementById('register-btn').addEventListener('click', handleRegister);
-  document.getElementById('confirm-btn').addEventListener('click', handleConfirmSignup);
-  document.getElementById('reset-btn').addEventListener('click', handleRequestReset);
-  document.getElementById('reset-confirm-btn').addEventListener('click', handleConfirmReset);
-  document.getElementById('logout-btn').addEventListener('click', handleLogout);
-
-  document.getElementById('link-to-register').addEventListener('click', () => showView('register-view'));
-  document.getElementById('link-to-login').addEventListener('click', () => showView('login-view'));
-  document.getElementById('link-to-reset').addEventListener('click', () => showView('reset-view'));
-
-  checkSession();
+  // Check authentication state
+  checkAuthState();
+  
+  // Login view
+  document.getElementById('login-btn')?.addEventListener('click', handleLogin);
+  document.getElementById('link-to-register')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showView('register-view');
+  });
+  document.getElementById('link-to-reset')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showView('reset-view');
+  });
+  
+  // Register view
+  document.getElementById('register-btn')?.addEventListener('click', handleRegister);
+  document.getElementById('link-to-login')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showView('login-view');
+  });
+  
+  // Confirm view
+  document.getElementById('confirm-btn')?.addEventListener('click', handleConfirm);
+  
+  // Reset view
+  document.getElementById('reset-btn')?.addEventListener('click', handleResetRequest);
+  
+  // Reset confirm view
+  document.getElementById('reset-confirm-btn')?.addEventListener('click', handleResetConfirm);
+  
+  // Dashboard view
+  document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
 });
+
+// Make functions available globally
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+window.handleConfirm = handleConfirm;
+window.handleResetRequest = handleResetRequest;
+window.handleResetConfirm = handleResetConfirm;
+window.handleLogout = handleLogout;

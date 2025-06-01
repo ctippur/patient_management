@@ -23,12 +23,23 @@ function showToast(message, isError = false) {
   }
 }
 
-// Configure Amplify with the outputs
+// Configure Amplify with hardcoded config
 async function configureAmplify() {
   try {
-    const response = await fetch('./amplify_outputs.json');
-    const config = await response.json();
-    console.log('Loaded Amplify config');
+    // Hardcoded configuration to avoid 404 errors in production
+    const config = {
+      "auth": {
+        "user_pool_id": "us-east-1_jWed54fcK",
+        "aws_region": "us-east-1",
+        "user_pool_client_id": "po58vsdfo8oklv3s5sadhe812",
+        "identity_pool_id": "us-east-1:17bb332a-5746-4ab0-b695-a02b4cf9355e"
+      },
+      "data": {
+        "url": "https://t2hes6xt5nfjtk3slb24k7huta.appsync-api.us-east-1.amazonaws.com/graphql",
+        "aws_region": "us-east-1",
+        "default_authorization_type": "AMAZON_COGNITO_USER_POOLS"
+      }
+    };
     
     AWS.Amplify.configure(config);
     console.log('Amplify configured successfully');

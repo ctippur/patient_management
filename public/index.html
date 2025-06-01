@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Management Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    .auth-container {
+      max-width: 420px;
+      margin: 5rem auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    
+    <!-- Login View -->
+    <div id="login-view" class="auth-view">
+      <h3>Patient Management Login</h3>
+      <input id="login-email" class="form-control mb-2" type="email" placeholder="Email" />
+      <input id="login-password" class="form-control mb-2" type="password" placeholder="Password" />
+      <button id="login-btn" class="btn btn-primary w-100 mb-2">Login</button>
+      <div class="text-center mt-3">
+        <a href="#" id="link-to-register">Create Account</a>
+      </div>
+    </div>
+
+    <!-- Register View -->
+    <div id="register-view" class="auth-view d-none">
+      <h3>Register</h3>
+      <input id="register-email" class="form-control mb-2" type="email" placeholder="Email" />
+      <input id="register-password" class="form-control mb-2" type="password" placeholder="Password" />
+      <button id="register-btn" class="btn btn-success w-100 mb-2">Sign Up</button>
+      <div class="text-center mt-3">
+        <a href="#" id="link-to-login">Back to Login</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1000">
+    <div id="toast" class="toast align-items-center text-bg-primary border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">This is a toast message.</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AWS Amplify script -->
+  <script src="https://cdn.jsdelivr.net/npm/aws-amplify@6.0.12/dist/aws-amplify.min.js"></script>
+  
+  <!-- Auth script -->
+  <script src="Auth.js"></script>
+  
+  <!-- Bootstrap script -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Configure Amplify
+    AWS.Amplify.configure({
+      "auth": {
+        "user_pool_id": "us-east-1_jWed54fcK",
+        "aws_region": "us-east-1",
+        "user_pool_client_id": "po58vsdfo8oklv3s5sadhe812",
+        "identity_pool_id": "us-east-1:17bb332a-5746-4ab0-b695-a02b4cf9355e"
+      },
+      "data": {
+        "url": "https://t2hes6xt5nfjtk3slb24k7huta.appsync-api.us-east-1.amazonaws.com/graphql",
+        "aws_region": "us-east-1",
+        "default_authorization_type": "AMAZON_COGNITO_USER_POOLS"
+      }
+    });
+    
+    // Initialize event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      // Login button
+      document.getElementById('login-btn').addEventListener('click', () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        handleLogin(email, password);
+      });
+      
+      // Register button
+      document.getElementById('register-btn').addEventListener('click', () => {
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        handleRegister(email, password);
+      });
+      
+      // View toggle links
+      document.getElementById('link-to-register').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('login-view').classList.add('d-none');
+        document.getElementById('register-view').classList.remove('d-none');
+      });
+      
+      document.getElementById('link-to-login').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('register-view').classList.add('d-none');
+        document.getElementById('login-view').classList.remove('d-none');
+      });
+    });
+  </script>
+</body>
+</html>
