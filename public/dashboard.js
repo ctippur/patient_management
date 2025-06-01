@@ -437,4 +437,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Export functions for HTML access
-export { handleAddPatient };
+//export { handleAddPatient };

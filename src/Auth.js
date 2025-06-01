@@ -32,6 +32,16 @@ async function handleLogin() {
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-password').value;
 
+  // In your login handler, add this debugging code
+  try {
+    const result = await Auth.signIn(username, password);
+    console.log('Sign in successful', result);
+  } catch (error) {
+    console.error('Error signing in:', error.message, error.code);
+    // Show more specific error message to the user based on error.code
+  }
+
+
   try {
     await signIn({ username: email, password });
     const user = await getCurrentUser();
