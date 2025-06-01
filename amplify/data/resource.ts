@@ -7,7 +7,7 @@ const schema = a.schema({
       dob: a.date().required(),
       email: a.email(),
       phone: a.string(),
-      owner: a.string()
+      createdBy: a.string()
     })
     .authorization(allow => [
       allow.owner().to(['create', 'read', 'update', 'delete']),

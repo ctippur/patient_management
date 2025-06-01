@@ -65,8 +65,14 @@ async function listPatients() {
     console.log('Current user ID:', userId);
 
     const client = AWS.Amplify.generateClient();
-    const result = await client.models.Patient.list();
-    console.log('Patient list result:', result);
+    // Use a filter to only fetch patients created by the current user
+    // This is more secure and efficient than fetching all patients
+    const result = await client.models.Patient.list({
+      filter: { createdBy: { eq: userId } }
+    });
+    
+    // Don't log patient data to console in production for HIPAA compliance
+    console.log('Patient list fetched successfully');
     
     const patients = result.data || [];
     
@@ -75,10 +81,7 @@ async function listPatients() {
     
     container.innerHTML = '';
 
-    const userPatients = patients.filter(patient => patient.owner === userId);
-    console.log('Filtered patients for current user:', userPatients);
-
-    if (userPatients.length === 0) {
+    if (patients.length === 0) {
       container.innerHTML = '<div class="alert alert-info">No patients found. Add your first patient!</div>';
       return;
     }
@@ -117,7 +120,8 @@ export async function addPatient(patientData) {
     // Configure Amplify first if needed
     await configureAmplify();
     
-    console.log('Adding patient with data:', patientData);
+    // Don't log PHI to console for HIPAA compliance
+    console.log('Processing patient data');
     
     const { name, dob, email, phone, id } = patientData;
     
@@ -127,35 +131,40 @@ export async function addPatient(patientData) {
     }
 
     const user = await AWS.Auth.getCurrentUser();
-    const owner = user.username;
-    console.log('Current user for adding patient:', owner);
-
+    const createdBy = user.username;
+    
     const client = AWS.Amplify.generateClient();
     
     if (id) {
-      console.log('Updating existing patient with ID:', id);
+      // First verify this patient belongs to the current user
+      const { data: existingPatient } = await client.models.Patient.get({ id });
+      if (!existingPatient || existingPatient.createdBy !== createdBy) {
+        console.error('Unauthorized patient update attempt');
+        showToast('You are not authorized to update this patient record.', true);
+        return;
+      }
+      
       const result = await client.models.Patient.update({
         id,
         name,
         dob,
         email,
         phone,
-        owner
+        createdBy
       });
       
-      console.log('Update result:', result);
+      console.log('Patient updated successfully');
       showToast('Patient updated successfully!');
     } else {
-      console.log('Creating new patient');
       const result = await client.models.Patient.create({
         name,
         dob,
         email,
         phone,
-        owner
+        createdBy
       });
       
-      console.log('Create result:', result);
+      console.log('Patient created successfully');
       showToast('Patient added successfully!');
     }
     
@@ -207,12 +216,19 @@ export async function handleAddPatient(event) {
 
 async function handleSearch() {
   const query = document.getElementById('search-query')?.value.toLowerCase() || '';
-  console.log('Searching for:', query);
+  console.log('Searching for patients');
   
   try {
     await configureAmplify();
     const client = AWS.Amplify.generateClient();
-    const result = await client.models.Patient.list();
+    const user = await AWS.Auth.getCurrentUser();
+    const userId = user.username;
+    
+    // Only fetch patients created by the current user
+    const result = await client.models.Patient.list({
+      filter: { createdBy: { eq: userId } }
+    });
+    
     const patients = result.data || [];
     
     const container = document.getElementById('patient-list');
@@ -220,15 +236,11 @@ async function handleSearch() {
     
     container.innerHTML = '';
     
-    const user = await AWS.Auth.getCurrentUser();
-    const userId = user.username;
-    
-    const filtered = patients
-      .filter(p => p.owner === userId)
-      .filter(p => 
-        p.name.toLowerCase().includes(query) || 
-        (p.email && p.email.toLowerCase().includes(query))
-      );
+    // Apply client-side search filter
+    const filtered = patients.filter(p => 
+      p.name.toLowerCase().includes(query) || 
+      (p.email && p.email.toLowerCase().includes(query))
+    );
     
     console.log('Filtered search results:', filtered);
     
@@ -279,9 +291,12 @@ async function handleLogout() {
 async function handleEditPatient(id) {
   try {
     await configureAmplify();
-    console.log('Editing patient with ID:', id);
+    console.log('Processing edit request');
     
     const client = AWS.Amplify.generateClient();
+    const user = await AWS.Auth.getCurrentUser();
+    const userId = user.username;
+    
     const result = await client.models.Patient.get({ id });
     const patient = result.data;
     
@@ -289,8 +304,16 @@ async function handleEditPatient(id) {
       showToast('Patient not found.', true);
       return;
     }
+    
+    // Verify this patient belongs to the current user
+    if (patient.createdBy !== userId) {
+      console.error('Unauthorized patient edit attempt');
+      showToast('You are not authorized to edit this patient record.', true);
+      return;
+    }
 
-    console.log('Patient data for editing:', patient);
+    // Don't log PHI to console for HIPAA compliance
+    console.log('Patient record retrieved for editing');
     const { name, dob, email, phone } = patient;
 
     const nameField = document.getElementById('patient-name');
@@ -328,11 +351,24 @@ async function handleDeletePatient(id) {
     }
     
     await configureAmplify();
-    console.log('Deleting patient with ID:', id);
+    console.log('Processing delete request');
     
     const client = AWS.Amplify.generateClient();
-    const result = await client.models.Patient.delete({ id });
-    console.log('Delete result:', result);
+    const user = await AWS.Auth.getCurrentUser();
+    const userId = user.username;
+    
+    // First verify this patient belongs to the current user
+    const { data: existingPatient } = await client.models.Patient.get({ id });
+    if (!existingPatient || existingPatient.createdBy !== userId) {
+      console.error('Unauthorized patient deletion attempt');
+      showToast('You are not authorized to delete this patient record.', true);
+      return;
+    }
+    
+    await client.models.Patient.delete({ id });
+    
+    // Log action without PHI for audit trail
+    console.log('Patient record deleted successfully');
     
     showToast('Patient deleted successfully.');
     await listPatients();
@@ -401,4 +437,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Export functions for HTML access
-export { handleAddPatient, addPatient };
+export { handleAddPatient };
