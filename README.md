@@ -31,13 +31,13 @@ For local development:
 3. The `config.js` file is included in `.gitignore` to prevent committing API keys
 
 ### Production Deployment
-For AWS deployment:
-1. Set the `OPENAI_API_KEY` environment variable in your Lambda function
-2. You can set this during deployment with:
-   ```
-   amplify push --env-vars OPENAI_API_KEY=your-api-key
-   ```
-3. Or set it in the AWS Console after deployment
+For production deployment:
+
+1. Deploy the frontend using Amplify Console
+2. Deploy the Lambda function and API Gateway separately using the scripts in the `lambda` directory
+3. Update the API endpoint URL in `public/api-client.js` before deploying the frontend
+
+See the `lambda/DEPLOYMENT.md` file for detailed instructions on setting up the Lambda function and API Gateway.
 
 ## Deploying to AWS
 
