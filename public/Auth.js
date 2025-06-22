@@ -81,7 +81,7 @@ async function handleLogout() {
     
     await AWS.Auth.signOut();
     showToast('Logged out successfully!');
-    window.location.href = 'index.html';
+    window.location.href = './index.html';
     return { success: true };
   } catch (error) {
     console.error('Error signing out:', error);

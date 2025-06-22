@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/<*>",
+      "target": "/index.html",
+      "status": "200"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "target": "/index.html",
+      "status": "302"
+    }
+  ],
+  "customHeaders": [],
+  "errorPages": {
+    "404": "/404.html"
+  }
+}
