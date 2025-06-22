@@ -588,6 +588,7 @@ async function saveVisit() {
         }
       });
       
+      
       // Upload file if provided
       if (uploadedFile) {
         showToast('Uploading file...');
