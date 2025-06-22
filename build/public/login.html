@@ -1,0 +1,129 @@
+<!-- login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+          <div class="card-body p-4">
+            <h3 class="card-title text-center mb-4">Sign In</h3>
+            
+            <div id="toast-container" class="position-fixed bottom-0 end-0 p-3"></div>
+
+            <form id="login-form">
+              <div class="mb-3">
+                <label for="login-email" class="form-label">Email address</label>
+                <input type="email" class="form-control" id="login-email" placeholder="Enter your email" required />
+              </div>
+
+              <div class="mb-3">
+                <label for="login-password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="login-password" placeholder="Enter password" required />
+              </div>
+
+              <div class="d-grid mb-2">
+                <button type="submit" class="btn btn-primary" id="login-btn">Login</button>
+              </div>
+              <div class="d-grid mb-2">
+                <button type="button" class="btn btn-danger" id="google-btn">Sign in with Google</button>
+              </div>
+            </form>
+
+            <div class="text-center mt-3">
+              <a href="register.html">Don't have an account? Register</a><br />
+              <a href="reset.html">Forgot Password?</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AWS Amplify script -->
+  <script src="https://cdn.jsdelivr.net/npm/aws-amplify@6.0.12/dist/aws-amplify.min.js"></script>
+  
+  <!-- Bootstrap script -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script type="module" src="Auth.js"></script>
+  
+  <script>
+  // Wait for the AWS Amplify script to load
+  document.addEventListener('DOMContentLoaded', () => {
+    // Check which global variable is available
+    const amplifyLib = window.aws_amplify || window.Amplify || window.AWS;
+    
+    if (!amplifyLib) {
+      console.error('AWS Amplify library not found');
+      showToast('Authentication service not available', true);
+      return;
+    }
+    
+    // Configure Amplify
+    amplifyLib.Amplify.configure({
+      Auth: {
+        region: "us-east-1",
+        userPoolId: "us-east-1_jWed54fcK",
+        userPoolWebClientId: "po58vsdfo8oklv3s5sadhe812",
+        identityPoolId: "us-east-1:17bb332a-5746-4ab0-b695-a02b4cf9355e"
+      }
+    });
+    
+    // Add Google sign-in handler
+    document.getElementById('google-btn').addEventListener('click', async () => {
+      try {
+        // Try different possible locations of the Auth object
+        const authLib = amplifyLib.Auth || amplifyLib.Amplify?.Auth;
+        
+        if (!authLib) {
+          throw new Error('Auth module not found');
+        }
+        
+        await authLib.federatedSignIn({ provider: 'Google' });
+      } catch (error) {
+        console.error('Error with Google sign-in:', error);
+        showToast('Failed to sign in with Google: ' + error.message, true);
+      }
+    });
+  });
+  
+  // Show toast notification
+  function showToast(message, isError = false) {
+    const container = document.getElementById('toast-container');
+    
+    const toastDiv = document.createElement('div');
+    toastDiv.className = `toast align-items-center ${isError ? 'text-bg-danger' : 'text-bg-primary'} border-0`;
+    toastDiv.setAttribute('role', 'alert');
+    toastDiv.setAttribute('aria-live', 'assertive');
+    toastDiv.setAttribute('aria-atomic', 'true');
+    
+    toastDiv.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+    
+    container.appendChild(toastDiv);
+    
+    const toast = new bootstrap.Toast(toastDiv);
+    toast.show();
+    
+    // Remove the toast after it's hidden
+    toastDiv.addEventListener('hidden.bs.toast', () => {
+      container.removeChild(toastDiv);
+    });
+  }
+</script>
+ 
+
+</body>
+</html>

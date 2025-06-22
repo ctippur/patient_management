@@ -1,0 +1,6 @@
+id,question,option_1,next_1,option_2,next_2,option_3,next_3,option_4,next_4,skip_to,option_5,next_5
+start,How would you describe the patient's dizziness?,Spinning (Vertigo),durationVertigo,Light-headed / Fainting sensation,faintingTriggers,Unsteadiness / Imbalance,imbalanceDuration,Floating / Disconnected feeling,pppdAssessment,onsetType,,
+durationVertigo,What is the typical duration of dizziness episodes?,Seconds,triggerSeconds,Minutes to hours,triggerMinutes,All day or constant,continuousDuration,,,onsetType,,
+onsetType,How did the dizziness start?,Suddenly,frequency,Gradually,frequency,After infection,frequency,After trauma,frequency,frequency,Unknown,frequency
+frequency,How often do symptoms occur?,Single episode,additionalHistory,1–2/month,additionalHistory,1–2/week,additionalHistory,Daily,additionalHistory,additionalHistory,Constant,additionalHistory
+additionalHistory,"Are there any other symptoms, history, or observations not covered above?",Enter below:,end,,,,,,,end,,
