@@ -94,6 +94,22 @@
 <!-- Bootstrap script -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- Configuration file with API keys (for local development) -->
+<script>
+// Create empty CONFIG object if running in production (where config.js is not available)
+if (typeof CONFIG === 'undefined') {
+  window.CONFIG = {
+    API_ENDPOINTS: {
+      OPENAI: 'https://api.openai.com/v1/chat/completions'
+    }
+  };
+}
+</script>
+<script src="/config.js"></script>
+
+<!-- API client for environment-aware API calls -->
+<script src="/api-client.js"></script>
+
 <!-- Clinical evaluation script -->
 <script src="/clinical_eval.js"></script>
 </body>

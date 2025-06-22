@@ -11,6 +11,33 @@ This template equips you with a foundational React application integrated with A
 - **Authentication**: Setup with Amazon Cognito for secure user authentication.
 - **API**: Ready-to-use GraphQL endpoint with AWS AppSync.
 - **Database**: Real-time database powered by Amazon DynamoDB.
+- **AI Integration**: OpenAI API integration for clinical diagnosis support.
+
+## Setup
+
+1. Clone this repository
+2. Install dependencies with `npm install`
+3. Copy `public/config.template.js` to `public/config.js` and add your API keys
+4. Run the development server with `npm run dev`
+
+## API Keys
+
+This application uses external APIs that require authentication:
+
+### Local Development
+For local development:
+1. Copy `public/config.template.js` to `public/config.js`
+2. Add your OpenAI API key to the `OPENAI_API_KEY` field
+3. The `config.js` file is included in `.gitignore` to prevent committing API keys
+
+### Production Deployment
+For AWS deployment:
+1. Set the `OPENAI_API_KEY` environment variable in your Lambda function
+2. You can set this during deployment with:
+   ```
+   amplify push --env-vars OPENAI_API_KEY=your-api-key
+   ```
+3. Or set it in the AWS Console after deployment
 
 ## Deploying to AWS
 

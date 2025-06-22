@@ -316,30 +316,25 @@ async function callAIService1(diagnosisData, fileUrl) {
   `;
   console.log("prompt", prompt);
   try {
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ***REMOVED***' // Replace with your API key or get from environment
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a medical diagnostic assistant specializing in vestibular disorders.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 1000
-      })
-    });
+    // Prepare request body
+    const requestBody = {
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a medical diagnostic assistant specializing in vestibular disorders.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 1000
+    };
     
-    const data = await response.json();
+    // Use the API client to make the call (works in both local and AWS environments)
+    const data = await ApiClient.callOpenAI(requestBody);
+    
     return {
       diagnosis: data.choices[0].message.content
     };
@@ -1101,7 +1096,6 @@ async function callAIService(diagnosisData, fileUrl) {
   const patientName = patient ? patient.name : 'Patient';
   
   // Create professional prompt for AI
-
   const prompt = `
     You are a clinical decision support assistant that helps clinicians evaluate dizzy patients. 
     You will be provided with structured data from the clinical examination, patient history, and vestibular testing. Based on this data, return the top 3 differential diagnoses with confidence scores and relevant treatment suggestions.
@@ -1144,30 +1138,25 @@ async function callAIService(diagnosisData, fileUrl) {
   
   console.log("Prompt", prompt);
   try {
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ***REMOVED***' // Replace with your API key or get from environment
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a medical specialist in vestibular disorders creating professional diagnosis reports.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 2000
-      })
-    });
+    // Prepare request body
+    const requestBody = {
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a medical specialist in vestibular disorders creating professional diagnosis reports.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 2000
+    };
     
-    const data = await response.json();
+    // Use the API client to make the call (works in both local and AWS environments)
+    const data = await ApiClient.callOpenAI(requestBody);
+    
     return {
       diagnosis: data.choices[0].message.content
     };
