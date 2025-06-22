@@ -58,7 +58,7 @@ function handleFileSelect(event) {
 // Load decision tree
 async function loadTree() {
   try {
-    const response = await fetch('/data/clinical_eval.csv');
+    const response = await fetch('data/clinical_eval.csv');
     const csvText = await response.text();
     
     // Parse CSV to decision tree
@@ -663,7 +663,7 @@ async function saveVisit() {
       // Remove these lines from saveVisit function
       showToast('Visit saved successfully!');
       setTimeout(() => {
-        window.location.href = '/dashboard.html';
+        window.location.href = 'dashboard.html';
       }, 1500);
 
       // Replace with just a toast message
@@ -808,7 +808,7 @@ function saveToLocalStorage(visitData) {
     // Remove these lines from saveToLocalStorage function
     showToast('Visit saved to localStorage successfully!');
     setTimeout(() => {
-      window.location.href = '/dashboard.html';
+      window.location.href = 'dashboard.html';
     }, 1500);
 
     // Replace with just a toast message
@@ -1011,7 +1011,7 @@ function loadFromLocalStorage() {
     } else {
       showToast('Visit not found in localStorage', true);
       setTimeout(() => {
-        window.location.href = '/dashboard.html';
+        window.location.href = 'dashboard.html';
       }, 1500);
     }
   } catch (error) {
