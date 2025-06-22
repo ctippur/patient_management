@@ -1,4 +1,4 @@
-// dashboard.js - Using global AWS Amplify from CDN
+// dashboard.js - Using tokens from localStorage
 
 // Toast display utility
 function showToast(message, isError = false) {
@@ -23,81 +23,178 @@ function showToast(message, isError = false) {
   }
 }
 
-// Configure Amplify with hardcoded config
-async function configureAmplify() {
+// Check if user is authenticated
+function isAuthenticated() {
+  const token = localStorage.getItem('accessToken');
+  return !!token;
+}
+
+// Get current user info from token
+function getCurrentUser() {
+  const idToken = localStorage.getItem('idToken');
+  if (!idToken) {
+    throw new Error("No authenticated user");
+  }
+  
   try {
-    // Hardcoded configuration to avoid 404 errors in production
-    const config = {
-      "auth": {
-        "user_pool_id": "us-east-1_jWed54fcK",
-        "aws_region": "us-east-1",
-        "user_pool_client_id": "po58vsdfo8oklv3s5sadhe812",
-        "identity_pool_id": "us-east-1:17bb332a-5746-4ab0-b695-a02b4cf9355e"
-      },
-      "data": {
-        "url": "https://t2hes6xt5nfjtk3slb24k7huta.appsync-api.us-east-1.amazonaws.com/graphql",
-        "aws_region": "us-east-1",
-        "default_authorization_type": "AMAZON_COGNITO_USER_POOLS"
-      }
+    // Parse the JWT token
+    const base64Url = idToken.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    const payload = JSON.parse(jsonPayload);
+    return {
+      username: payload['cognito:username'] || payload.email || payload.sub,
+      signInDetails: { loginId: payload.email }
     };
-    
-    AWS.Amplify.configure(config);
-    console.log('Amplify configured successfully');
-    return true;
   } catch (error) {
-    console.error('Failed to configure Amplify:', error);
-    showToast('Failed to initialize application. Please refresh and try again.', true);
-    return false;
+    console.error('Error parsing token:', error);
+    throw new Error("Invalid authentication token");
   }
 }
 
+// Get patients from localStorage
+function getPatients() {
+  try {
+    const patientsJson = localStorage.getItem('patients');
+    return patientsJson ? JSON.parse(patientsJson) : [];
+  } catch (error) {
+    console.error('Error getting patients:', error);
+    return [];
+  }
+}
+
+// Get patient by ID
+function getPatientById(id) {
+  const patients = getPatients();
+  return patients.find(patient => patient.id === id);
+}
+
+// Add this helper function to display patients
+function displayPatients(patients) {
+  const container = document.getElementById('patient-list');
+  if (!container) return;
+  
+  if (patients.length === 0) {
+    container.innerHTML = '<div class="alert alert-info">No matching patients found.</div>';
+    return;
+  }
+  
+  // Display patients
+  container.innerHTML = '';
+  patients.forEach(patient => {
+    const div = document.createElement('div');
+    div.className = 'card my-2 p-3';
+    div.innerHTML = `
+      <h5>${patient.name}</h5>
+      <p>Email: ${patient.email || 'N/A'}</p>
+      <p>DOB: ${patient.dob}</p>
+      <p>Phone: ${patient.phone || 'N/A'}</p>
+      <div class="mt-2">
+        <button class="btn btn-primary btn-sm me-2 edit-btn" data-id="${patient.id}">Edit</button>
+        <button class="btn btn-danger btn-sm delete-btn" data-id="${patient.id}">Delete</button>
+        <div class="mt-2">
+          <a href="history.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">Patient History</a>
+          <a href="/clinical_eval.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">New Visit</a>
+          <button class="btn btn-secondary btn-sm view-visits-btn" data-id="${patient.id}">View Past Visits</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+  
+  // Add event listeners for buttons
+  container.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleEditPatient(btn.dataset.id));
+  });
+  
+  container.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleDeletePatient(btn.dataset.id));
+  });
+  
+  container.querySelectorAll('.view-visits-btn').forEach(btn => {
+    btn.addEventListener('click', () => showPatientVisits(btn.dataset.id));
+  });
+}
+
+function handleSearch() {
+  const query = document.getElementById('search-query')?.value.toLowerCase() || '';
+  if (!query) {
+    loadDashboard(); // If search is empty, just reload all patients
+    return;
+  }
+  
+  try {
+    // Get all patients
+    const patients = getPatients();
+    
+    // Filter patients based on search query
+    const filteredPatients = patients.filter(patient => 
+      patient.name.toLowerCase().includes(query) || 
+      (patient.email && patient.email.toLowerCase().includes(query)) ||
+      (patient.phone && patient.phone.toLowerCase().includes(query))
+    );
+    
+    // Display filtered patients
+    displayPatients(filteredPatients);
+  } catch (error) {
+    console.error('Error searching patients:', error);
+    showToast('Failed to search patients: ' + error.message, true);
+  }
+}
+
+// Initialize dashboard
+
 async function loadDashboard() {
   try {
-    // Configure Amplify first
-    const configured = await configureAmplify();
-    if (!configured) return;
+    if (!isAuthenticated()) {
+      window.location.href = '/dashboard.html';
+      return;
+    }
     
-    const user = await AWS.Auth.getCurrentUser();
+    const user = getCurrentUser();
     const greeting = document.getElementById('user-greeting');
     if (greeting) {
       greeting.textContent = `Welcome, ${user.signInDetails?.loginId || user.username}`;
     }
-    await listPatients();
+    
+    // Get patients from localStorage
+    const patients = getPatients();
+    displayPatients(patients);
   } catch (error) {
     console.error('Failed to fetch user info:', error);
     showToast('Failed to fetch user session.', true);
   }
 }
 
-async function listPatients() {
+async function loadDashboard1() {
   try {
-    const user = await AWS.Auth.getCurrentUser();
-    const userId = user.username;
-    console.log('Current user ID:', userId);
-
-    const client = AWS.Amplify.generateClient();
-    // Use a filter to only fetch patients created by the current user
-    // This is more secure and efficient than fetching all patients
-    const result = await client.models.Patient.list({
-      filter: { createdBy: { eq: userId } }
-    });
+    if (!isAuthenticated()) {
+      window.location.href = '/';
+      return;
+    }
     
-    // Don't log patient data to console in production for HIPAA compliance
-    console.log('Patient list fetched successfully');
+    const user = getCurrentUser();
+    const greeting = document.getElementById('user-greeting');
+    if (greeting) {
+      greeting.textContent = `Welcome, ${user.signInDetails?.loginId || user.username}`;
+    }
     
-    const patients = result.data || [];
-    
+    // Get patients from localStorage
+    const patients = getPatients();
     const container = document.getElementById('patient-list');
     if (!container) return;
     
-    container.innerHTML = '';
-
     if (patients.length === 0) {
       container.innerHTML = '<div class="alert alert-info">No patients found. Add your first patient!</div>';
       return;
     }
-
-    userPatients.forEach(patient => {
+    
+    // Display patients
+    container.innerHTML = '';
+    patients.forEach(patient => {
       const div = document.createElement('div');
       div.className = 'card my-2 p-3';
       div.innerHTML = `
@@ -108,78 +205,73 @@ async function listPatients() {
         <div class="mt-2">
           <button class="btn btn-primary btn-sm me-2 edit-btn" data-id="${patient.id}">Edit</button>
           <button class="btn btn-danger btn-sm delete-btn" data-id="${patient.id}">Delete</button>
+          <div class="mt-2">
+            <a href="history.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">Patient History</a>
+            <a href="/clinical_eval.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">New Visit</a>
+            <button class="btn btn-secondary btn-sm view-visits-btn" data-id="${patient.id}">View Past Exams</button>
+          </div>
         </div>
       `;
       container.appendChild(div);
     });
-
+    
+    // Add event listeners for buttons
     container.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', () => handleEditPatient(btn.dataset.id));
     });
+    
     container.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', () => handleDeletePatient(btn.dataset.id));
     });
+    
+    container.querySelectorAll('.view-visits-btn').forEach(btn => {
+      btn.addEventListener('click', () => showPatientVisits(btn.dataset.id));
+    });
   } catch (error) {
-    console.error('Failed to load patients:', error);
-    showToast('Error loading patients: ' + error.message, true);
+    console.error('Failed to fetch user info:', error);
+    showToast('Failed to fetch user session.', true);
   }
 }
 
-// Function for direct calls from HTML
-export async function addPatient(patientData) {
+// Handle logout
+function handleLogout() {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('idToken');
+  window.location.href = '/';
+}
+
+// Add patient
+async function addPatient(patientData) {
   try {
-    // Configure Amplify first if needed
-    await configureAmplify();
-    
-    // Don't log PHI to console for HIPAA compliance
-    console.log('Processing patient data');
-    
-    const { name, dob, email, phone, id } = patientData;
+    const { name, dob, email, phone } = patientData;
     
     if (!name || !dob || !email) {
       showToast('Name, DOB, and Email are required.', true);
       return;
     }
 
-    const user = await AWS.Auth.getCurrentUser();
-    const createdBy = user.username;
+    // Get existing patients
+    const patients = getPatients();
     
-    const client = AWS.Amplify.generateClient();
+    // Add new patient
+    const newPatient = {
+      id: 'patient-' + Date.now(),
+      name,
+      dob,
+      email,
+      phone,
+      createdAt: new Date().toISOString()
+    };
     
-    if (id) {
-      // First verify this patient belongs to the current user
-      const { data: existingPatient } = await client.models.Patient.get({ id });
-      if (!existingPatient || existingPatient.createdBy !== createdBy) {
-        console.error('Unauthorized patient update attempt');
-        showToast('You are not authorized to update this patient record.', true);
-        return;
-      }
-      
-      const result = await client.models.Patient.update({
-        id,
-        name,
-        dob,
-        email,
-        phone,
-        createdBy
-      });
-      
-      console.log('Patient updated successfully');
-      showToast('Patient updated successfully!');
-    } else {
-      const result = await client.models.Patient.create({
-        name,
-        dob,
-        email,
-        phone,
-        createdBy
-      });
-      
-      console.log('Patient created successfully');
-      showToast('Patient added successfully!');
-    }
+    patients.push(newPatient);
     
-    await listPatients();
+    // Save to localStorage
+    localStorage.setItem('patients', JSON.stringify(patients));
+    
+    showToast('Patient added successfully!');
+    
+    // Reload the dashboard
+    loadDashboard();
   } catch (error) {
     console.error('Error saving patient:', error);
     showToast('Failed to save patient: ' + error.message, true);
@@ -187,7 +279,7 @@ export async function addPatient(patientData) {
 }
 
 // Form handler for submit event
-export async function handleAddPatient(event) {
+async function handleAddPatient(event) {
   if (event && typeof event.preventDefault === 'function') {
     event.preventDefault();
   }
@@ -199,134 +291,83 @@ export async function handleAddPatient(event) {
   const email = document.getElementById('patient-email')?.value.trim();
   const phone = document.getElementById('patient-phone')?.value.trim();
   const id = document.getElementById('patient-id')?.value;
-
-  console.log('Form values:', { name, dob, email, phone, id });
   
-  await addPatient({ name, dob, email, phone, id });
+  if (id) {
+    // Update existing patient
+    updatePatient({ id, name, dob, email, phone });
+  } else {
+    // Add new patient
+    addPatient({ name, dob, email, phone });
+  }
   
   const form = document.getElementById('add-patient-form');
   if (form) {
     form.reset();
-    console.log('Form reset');
   }
-  
-  const submitBtn = document.getElementById('submit-btn');
-  if (submitBtn) submitBtn.textContent = 'Add Patient';
   
   // Close modal if it exists
   try {
     const modal = bootstrap.Modal.getInstance(document.getElementById('addPatientModal'));
     if (modal) {
       modal.hide();
-      console.log('Modal hidden');
     }
   } catch (error) {
     console.error('Error hiding modal:', error);
   }
 }
 
-async function handleSearch() {
-  const query = document.getElementById('search-query')?.value.toLowerCase() || '';
-  console.log('Searching for patients');
-  
+// Update patient
+function updatePatient(patientData) {
   try {
-    await configureAmplify();
-    const client = AWS.Amplify.generateClient();
-    const user = await AWS.Auth.getCurrentUser();
-    const userId = user.username;
+    const { id, name, dob, email, phone } = patientData;
     
-    // Only fetch patients created by the current user
-    const result = await client.models.Patient.list({
-      filter: { createdBy: { eq: userId } }
-    });
-    
-    const patients = result.data || [];
-    
-    const container = document.getElementById('patient-list');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    // Apply client-side search filter
-    const filtered = patients.filter(p => 
-      p.name.toLowerCase().includes(query) || 
-      (p.email && p.email.toLowerCase().includes(query))
-    );
-    
-    console.log('Filtered search results:', filtered);
-    
-    if (filtered.length === 0) {
-      container.innerHTML = '<div class="alert alert-info">No matching patients found.</div>';
+    if (!id || !name || !dob || !email) {
+      showToast('ID, Name, DOB, and Email are required.', true);
       return;
     }
     
-    filtered.forEach(patient => {
-      const div = document.createElement('div');
-      div.className = 'card my-2 p-3';
-      div.innerHTML = `
-        <h5>${patient.name}</h5>
-        <p>Email: ${patient.email || 'N/A'}</p>
-        <p>DOB: ${patient.dob}</p>
-        <p>Phone: ${patient.phone || 'N/A'}</p>
-        <div class="mt-2">
-          <button class="btn btn-primary btn-sm me-2 edit-btn" data-id="${patient.id}">Edit</button>
-          <button class="btn btn-danger btn-sm delete-btn" data-id="${patient.id}">Delete</button>
-        </div>
-      `;
-      container.appendChild(div);
-    });
-
-    container.querySelectorAll('.edit-btn').forEach(btn => {
-      btn.addEventListener('click', () => handleEditPatient(btn.dataset.id));
-    });
-    container.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => handleDeletePatient(btn.dataset.id));
-    });
+    // Get existing patients
+    const patients = getPatients();
+    
+    // Find and update the patient
+    const index = patients.findIndex(p => p.id === id);
+    if (index === -1) {
+      showToast('Patient not found.', true);
+      return;
+    }
+    
+    patients[index] = {
+      ...patients[index],
+      name,
+      dob,
+      email,
+      phone,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('patients', JSON.stringify(patients));
+    
+    showToast('Patient updated successfully!');
+    
+    // Reload the dashboard
+    loadDashboard();
   } catch (error) {
-    console.error('Search failed:', error);
-    showToast('Failed to search patients: ' + error.message, true);
+    console.error('Error updating patient:', error);
+    showToast('Failed to update patient: ' + error.message, true);
   }
 }
 
-async function handleLogout() {
+// Handle edit patient
+function handleEditPatient(id) {
   try {
-    await configureAmplify();
-    await AWS.Auth.signOut();
-    window.location.href = '/';
-  } catch (error) {
-    console.error('Logout error:', error);
-    showToast('Failed to logout: ' + error.message, true);
-  }
-}
-
-async function handleEditPatient(id) {
-  try {
-    await configureAmplify();
-    console.log('Processing edit request');
-    
-    const client = AWS.Amplify.generateClient();
-    const user = await AWS.Auth.getCurrentUser();
-    const userId = user.username;
-    
-    const result = await client.models.Patient.get({ id });
-    const patient = result.data;
-    
+    const patient = getPatientById(id);
     if (!patient) {
       showToast('Patient not found.', true);
       return;
     }
     
-    // Verify this patient belongs to the current user
-    if (patient.createdBy !== userId) {
-      console.error('Unauthorized patient edit attempt');
-      showToast('You are not authorized to edit this patient record.', true);
-      return;
-    }
-
-    // Don't log PHI to console for HIPAA compliance
-    console.log('Patient record retrieved for editing');
-    const { name, dob, email, phone } = patient;
-
+    // Fill the form with patient data
     const nameField = document.getElementById('patient-name');
     const dobField = document.getElementById('patient-dob');
     const emailField = document.getElementById('patient-email');
@@ -334,58 +375,203 @@ async function handleEditPatient(id) {
     const idField = document.getElementById('patient-id');
     const submitBtn = document.getElementById('submit-btn');
     
-    if (nameField) nameField.value = name;
-    if (dobField) dobField.value = dob;
-    if (emailField) emailField.value = email;
-    if (phoneField) phoneField.value = phone || '';
-    if (idField) idField.value = id;
+    if (nameField) nameField.value = patient.name;
+    if (dobField) dobField.value = patient.dob;
+    if (emailField) emailField.value = patient.email;
+    if (phoneField) phoneField.value = patient.phone || '';
+    if (idField) idField.value = patient.id;
     if (submitBtn) submitBtn.textContent = 'Update Patient';
     
-    // Show modal if it exists
-    try {
-      const modal = new bootstrap.Modal(document.getElementById('addPatientModal'));
-      modal.show();
-      console.log('Modal shown for editing');
-    } catch (error) {
-      console.error('Error showing modal:', error);
-    }
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('addPatientModal'));
+    modal.show();
   } catch (error) {
-    console.error('Edit fetch failed:', error);
-    showToast('Failed to load patient for edit: ' + error.message, true);
+    console.error('Error editing patient:', error);
+    showToast('Failed to edit patient: ' + error.message, true);
   }
 }
 
-async function handleDeletePatient(id) {
+// Handle delete patient
+function handleDeletePatient(id) {
   try {
     if (!confirm('Are you sure you want to delete this patient?')) {
       return;
     }
     
-    await configureAmplify();
-    console.log('Processing delete request');
+    // Get existing patients
+    const patients = getPatients();
     
-    const client = AWS.Amplify.generateClient();
-    const user = await AWS.Auth.getCurrentUser();
-    const userId = user.username;
-    
-    // First verify this patient belongs to the current user
-    const { data: existingPatient } = await client.models.Patient.get({ id });
-    if (!existingPatient || existingPatient.createdBy !== userId) {
-      console.error('Unauthorized patient deletion attempt');
-      showToast('You are not authorized to delete this patient record.', true);
+    // Find and remove the patient
+    const index = patients.findIndex(p => p.id === id);
+    if (index === -1) {
+      showToast('Patient not found.', true);
       return;
     }
     
-    await client.models.Patient.delete({ id });
+    patients.splice(index, 1);
     
-    // Log action without PHI for audit trail
-    console.log('Patient record deleted successfully');
+    // Save to localStorage
+    localStorage.setItem('patients', JSON.stringify(patients));
     
-    showToast('Patient deleted successfully.');
-    await listPatients();
+    showToast('Patient deleted successfully!');
+    
+    // Reload the dashboard
+    loadDashboard();
   } catch (error) {
-    console.error('Delete failed:', error);
+    console.error('Error deleting patient:', error);
     showToast('Failed to delete patient: ' + error.message, true);
+  }
+}
+
+// Show patient exams
+function showPatientExams(patientId) {
+  try {
+    // Get the patient's exams from localStorage
+    const exams = getPatientExams(patientId);
+    const patient = getPatientById(patientId);
+    
+    if (!patient) {
+      showToast('Patient not found.', true);
+      return;
+    }
+    
+    // Create a modal to display the exams
+    const modalHtml = `
+      <div class="modal fade" id="examsModal" tabindex="-1" aria-labelledby="examsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="examsModalLabel">Past Clinical Examinations - ${patient.name}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              ${exams.length === 0 ? 
+                '<div class="alert alert-info">No past examinations found.</div>' : 
+                `<div class="list-group">
+                  ${exams.map(exam => `
+                    <a href="/clinical_eval.html?patientId=${patientId}&examId=${exam.id}" class="list-group-item list-group-item-action">
+                      <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">Exam on ${new Date(exam.date).toLocaleDateString()}</h5>
+                      </div>
+                      <p class="mb-1">${exam.summary || 'No summary available'}</p>
+                    </a>
+                  `).join('')}
+                </div>`
+              }
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add the modal to the document
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('examsModal'));
+    modal.show();
+    
+    // Remove the modal from the DOM when it's hidden
+    document.getElementById('examsModal').addEventListener('hidden.bs.modal', function () {
+      document.body.removeChild(modalContainer);
+    });
+  } catch (error) {
+    console.error('Error showing patient exams:', error);
+    showToast('Failed to show patient exams: ' + error.message, true);
+  }
+}
+
+// Add this function to dashboard.js
+function showPatientVisits(patientId) {
+  try {
+    // Get the patient's visits from localStorage
+    const visits = getPatientVisits(patientId);
+    const patient = getPatientById(patientId);
+    
+    if (!patient) {
+      showToast('Patient not found.', true);
+      return;
+    }
+    
+    // Create a modal to display the visits
+    const modalHtml = `
+      <div class="modal fade" id="visitsModal" tabindex="-1" aria-labelledby="visitsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="visitsModalLabel">Past Visits - ${patient.name}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              ${visits.length === 0 ? 
+                '<div class="alert alert-info">No past visits found.</div>' : 
+                `<div class="list-group">
+                  ${visits.map(visit => `
+                    <a href="/clinical_eval.html?patientId=${patientId}&visitId=${visit.id}" class="list-group-item list-group-item-action">
+                      <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">Visit on ${new Date(visit.date).toLocaleDateString()}</h5>
+                        <span class="badge ${visit.diagnosis ? 'bg-success' : 'bg-warning'}">${visit.diagnosis ? 'Diagnosis Available' : 'No Diagnosis'}</span>
+                      </div>
+                      <p class="mb-1">${visit.clinicalExam?.summary || 'No summary available'}</p>
+                      ${visit.diagnosis ? `<div class="mt-2 p-2 bg-light"><strong>Diagnosis:</strong> ${visit.diagnosis.substring(0, 100)}...</div>` : ''}
+                    </a>
+                  `).join('')}
+                </div>`
+              }
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add the modal to the document
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('visitsModal'));
+    modal.show();
+    
+    // Remove the modal from the DOM when it's hidden
+    document.getElementById('visitsModal').addEventListener('hidden.bs.modal', function () {
+      document.body.removeChild(modalContainer);
+    });
+  } catch (error) {
+    console.error('Error showing patient visits:', error);
+    showToast('Failed to show patient visits: ' + error.message, true);
+  }
+}
+
+
+// Get patient visits
+function getPatientVisits(patientId) {
+  try {
+    const visitsJson = localStorage.getItem(`patient_${patientId}_visits`);
+    return visitsJson ? JSON.parse(visitsJson) : [];
+  } catch (error) {
+    console.error('Error getting patient visits:', error);
+    return [];
+  }
+}
+
+
+// Get patient exams
+function getPatientExams(patientId) {
+  try {
+    const examsJson = localStorage.getItem(`patient_${patientId}_exams`);
+    return examsJson ? JSON.parse(examsJson) : [];
+  } catch (error) {
+    console.error('Error getting patient exams:', error);
+    return [];
   }
 }
 
@@ -396,31 +582,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const form = document.getElementById('add-patient-form');
   if (form) {
-    console.log('Add patient form found, adding submit listener');
     form.addEventListener('submit', handleAddPatient);
-  } else {
-    console.warn('Add patient form not found');
-  }
-
-  const searchBtn = document.getElementById('search-patient-btn');
-  if (searchBtn) {
-    console.log('Search button found, adding click listener');
-    searchBtn.addEventListener('click', handleSearch);
-  } else {
-    console.warn('Search button not found');
   }
 
   const logoutLink = document.getElementById('logout-link');
   if (logoutLink) {
-    console.log('Logout link found, adding click listener');
     logoutLink.addEventListener('click', handleLogout);
-  } else {
-    console.warn('Logout link not found');
   }
   
   const addPatientBtn = document.getElementById('add-patient-btn');
   if (addPatientBtn) {
-    console.log('Add patient button found, adding click listener');
     addPatientBtn.addEventListener('click', () => {
       try {
         // Reset form if it exists
@@ -442,10 +613,21 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error showing add patient modal:', error);
       }
     });
-  } else {
-    console.warn('Add patient button not found');
+
+    const searchBtn = document.getElementById('search-patient-btn');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', handleSearch);
+    }
+  }
+  
+
+  // Also add this for search on Enter key
+  const searchInput = document.getElementById('search-query');
+  if (searchInput) {
+    searchInput.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') {
+        handleSearch();
+      }
+    });
   }
 });
-
-// Export functions for HTML access
-//export { handleAddPatient };

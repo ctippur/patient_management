@@ -1,0 +1,8 @@
+id,question,option_1,next_1,option_2,next_2,option_3,next_3,skip_to,option_4,next_4
+start,Is spontaneous nystagmus observed with fixation removed?,Yes - Right beating,gazeNystagmus,Yes - Left beating,gazeNystagmus,No,gazeNystagmus,gazeNystagmus,,
+gazeNystagmus,Is gaze-evoked nystagmus present?,Yes - Direction changing,headImpulse,Yes - Same direction,headImpulse,No,headImpulse,headImpulse,,
+headImpulse,Head Impulse Test (bedside):,Normal,dixHallpike,Corrective saccades on right,dixHallpike,Corrective saccades on left,dixHallpike,dixHallpike,,
+dixHallpike,Is Dix-Hallpike test positive?,Yes - Right side,romberg,Yes - Left side,romberg,No,romberg,romberg,,
+romberg,Romberg Test findings:,Normal,gait,Sways with eyes closed,gait,Falls with eyes closed,gait,gait,,
+gait,Gait Assessment:,Normal,additionalNotes,Ataxic,additionalNotes,Veering to one side,additionalNotes,additionalNotes,Unable to walk,additionalNotes
+additionalNotes,"Any other clinical signs, observations, or neurological deficits?",Enter below:,end,,,,,end,,

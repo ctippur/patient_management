@@ -39,40 +39,43 @@ function showView(viewId) {
 }
 
 // Handle login
-async function handleLogin() {
+async function handleLogin(username, password) {
   try {
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
+    console.log('Attempting to sign in user:', username);
+    console.log('Using Cognito config:', {
+      userPoolId: AWS.Amplify.getConfig().Auth.userPoolId,
+      userPoolClientId: AWS.Amplify.getConfig().Auth.userPoolClientId
+    });
     
-    if (!email || !password) {
-      showToast('Please enter both email and password', true);
-      return;
-    }
+    // Try with different authentication parameters
+    const result = await AWS.Auth.signIn({
+      username: username,
+      password: password
+    });
     
-    console.log('Attempting to sign in user:', email);
-    const result = await signIn({ username: email, password });
     console.log('Sign in successful');
+    return { success: true, user: result };
+  } catch (error) {
+    // Log detailed error information
+    console.error('Error code:', error.code);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     
-    showToast('Login successful!');
-    showView('dashboard-view');
-    
-    // Display user info
-    const user = await getCurrentUser();
-    const userInfo = document.getElementById('user-info');
-    if (userInfo) {
-      userInfo.textContent = `Logged in as: ${user.signInDetails?.loginId || user.username}`;
+    if (error.code === 'UserNotConfirmedException') {
+      // Handle unconfirmed user
+      showToast('Please confirm your email before logging in', true);
+    } else if (error.code === 'NotAuthorizedException') {
+      // Handle incorrect password
+      showToast('Incorrect username or password', true);
+    } else if (error.code === 'UserNotFoundException') {
+      // Handle user not found
+      showToast('User does not exist', true);
     }
     
-    // Redirect to dashboard after short delay
-    setTimeout(() => {
-      window.location.href = '/public/dashboard.html';
-    }, 1000);
-    
-  } catch (error) {
-    console.error('Error signing in:', error.message);
-    showToast(`Login failed: ${error.message}`, true);
+    return { success: false, error: error.message };
   }
 }
+
 
 // Handle registration
 async function handleRegister() {
@@ -216,6 +219,25 @@ async function checkAuthState() {
   }
 }
 
+async function handleForgotPassword(username) {
+  try {
+    console.log('Requesting password reset for:', username);
+    
+    await AWS.Auth.forgotPassword(username);
+    
+    console.log('Password reset code sent successfully');
+    showToast('Password reset code sent to your email', false);
+    return { success: true };
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    showToast(`Failed to send reset code: ${error.message}`, true);
+    return { success: false, error: error.message };
+  }
+}
+
+
+
+
 // Initialize event listeners when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   // Check authentication state
@@ -259,3 +281,5 @@ window.handleConfirm = handleConfirm;
 window.handleResetRequest = handleResetRequest;
 window.handleResetConfirm = handleResetConfirm;
 window.handleLogout = handleLogout;
+// Make it available globally
+window.handleForgotPassword = handleForgotPassword;

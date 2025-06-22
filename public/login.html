@@ -33,7 +33,7 @@
                 <button type="submit" class="btn btn-primary" id="login-btn">Login</button>
               </div>
               <div class="d-grid mb-2">
-                <button type="button" class="btn btn-outline-danger" id="google-btn">Sign in with Google</button>
+                <button type="button" class="btn btn-danger" id="google-btn">Sign in with Google</button>
               </div>
             </form>
 
@@ -47,6 +47,83 @@
     </div>
   </div>
 
-  <script type="module" src="src/Auth.js"></script>
+  <!-- AWS Amplify script -->
+  <script src="https://cdn.jsdelivr.net/npm/aws-amplify@6.0.12/dist/aws-amplify.min.js"></script>
+  
+  <!-- Bootstrap script -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script type="module" src="Auth.js"></script>
+  
+  <script>
+  // Wait for the AWS Amplify script to load
+  document.addEventListener('DOMContentLoaded', () => {
+    // Check which global variable is available
+    const amplifyLib = window.aws_amplify || window.Amplify || window.AWS;
+    
+    if (!amplifyLib) {
+      console.error('AWS Amplify library not found');
+      showToast('Authentication service not available', true);
+      return;
+    }
+    
+    // Configure Amplify
+    amplifyLib.Amplify.configure({
+      Auth: {
+        region: "us-east-1",
+        userPoolId: "us-east-1_jWed54fcK",
+        userPoolWebClientId: "po58vsdfo8oklv3s5sadhe812",
+        identityPoolId: "us-east-1:17bb332a-5746-4ab0-b695-a02b4cf9355e"
+      }
+    });
+    
+    // Add Google sign-in handler
+    document.getElementById('google-btn').addEventListener('click', async () => {
+      try {
+        // Try different possible locations of the Auth object
+        const authLib = amplifyLib.Auth || amplifyLib.Amplify?.Auth;
+        
+        if (!authLib) {
+          throw new Error('Auth module not found');
+        }
+        
+        await authLib.federatedSignIn({ provider: 'Google' });
+      } catch (error) {
+        console.error('Error with Google sign-in:', error);
+        showToast('Failed to sign in with Google: ' + error.message, true);
+      }
+    });
+  });
+  
+  // Show toast notification
+  function showToast(message, isError = false) {
+    const container = document.getElementById('toast-container');
+    
+    const toastDiv = document.createElement('div');
+    toastDiv.className = `toast align-items-center ${isError ? 'text-bg-danger' : 'text-bg-primary'} border-0`;
+    toastDiv.setAttribute('role', 'alert');
+    toastDiv.setAttribute('aria-live', 'assertive');
+    toastDiv.setAttribute('aria-atomic', 'true');
+    
+    toastDiv.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+    
+    container.appendChild(toastDiv);
+    
+    const toast = new bootstrap.Toast(toastDiv);
+    toast.show();
+    
+    // Remove the toast after it's hidden
+    toastDiv.addEventListener('hidden.bs.toast', () => {
+      container.removeChild(toastDiv);
+    });
+  }
+</script>
+ 
+
 </body>
 </html>

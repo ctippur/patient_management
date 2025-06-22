@@ -4,10 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Patient Management Auth</title>
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
     .auth-container {
       max-width: 420px;
@@ -17,14 +14,12 @@
 </head>
 <body>
   <div class="auth-container">
-    
     <!-- Login View -->
     <div id="login-view" class="auth-view">
       <h3>Login</h3>
       <input id="login-email" class="form-control mb-2" type="email" placeholder="Email" />
       <input id="login-password" class="form-control mb-2" type="password" placeholder="Password" />
       <button id="login-btn" class="btn btn-primary w-100 mb-2">Login</button>
-      <button id="google-btn" class="btn btn-outline-danger w-100 mb-2">Sign in with Google</button>
       <div class="text-center mt-3">
         <a href="#" id="link-to-register">Create Account</a> | 
         <a href="#" id="link-to-reset">Forgot Password?</a>
@@ -42,47 +37,23 @@
       </div>
     </div>
 
-    <!-- Confirm View -->
+    <!-- Add this after the Register View -->
     <div id="confirm-view" class="auth-view d-none">
-      <h3>Email Confirmation</h3>
+      <h3>Confirm Registration</h3>
       <input id="confirm-email" class="form-control mb-2" type="email" placeholder="Email" />
       <input id="confirm-code" class="form-control mb-2" type="text" placeholder="Verification Code" />
-      <button id="confirm-btn" class="btn btn-success w-100 mb-2">Confirm Email</button>
-    </div>
-
-    <!-- Reset Request View -->
-    <div id="reset-view" class="auth-view d-none">
-      <h3>Reset Password</h3>
-      <input id="reset-email" class="form-control mb-2" type="email" placeholder="Email" />
-      <button id="reset-btn" class="btn btn-warning w-100 mb-2">Send Reset Code</button>
+      <button id="confirm-btn" class="btn btn-success w-100 mb-2">Verify Account</button>
       <div class="text-center mt-3">
-        <a href="#" id="link-to-login">Back to Login</a>
+        <a href="#" id="link-to-login-from-confirm">Back to Login</a>
       </div>
     </div>
 
-    <!-- Reset Confirmation View -->
-    <div id="reset-confirm-view" class="auth-view d-none">
-      <h3>Set New Password</h3>
-      <input id="reset-confirm-email" class="form-control mb-2" type="email" placeholder="Email" />
-      <input id="reset-code" class="form-control mb-2" type="text" placeholder="Reset Code" />
-      <input id="reset-new-password" class="form-control mb-2" type="password" placeholder="New Password" />
-      <button id="reset-confirm-btn" class="btn btn-warning w-100 mb-2">Update Password</button>
-    </div>
 
-    <!-- Dashboard View -->
-    <div id="dashboard-view" class="auth-view d-none">
-      <h3>Dashboard</h3>
-      <p id="user-info" class="mb-3 text-primary"></p>
-      <button id="logout-btn" class="btn btn-danger w-100">Logout</button>
-    </div>
-
+    <!-- Other views... -->
   </div>
 
   <!-- Toast Notification -->
-  <div
-    class="toast-container position-fixed bottom-0 end-0 p-3"
-    style="z-index: 1000"
-  >
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1000">
     <div id="toast" class="toast align-items-center text-bg-primary border-0" role="alert">
       <div class="d-flex">
         <div class="toast-body">This is a toast message.</div>
@@ -91,9 +62,215 @@
     </div>
   </div>
 
-  <script type="module" src="/src/Auth.js"></script>
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-  ></script>
+  <!-- In the login view section of index.html -->
+  <button id="google-btn" class="btn btn-danger w-100 mb-2">
+    <i class="bi bi-google"></i> Sign in with Google
+  </button>
+
+  <!-- Load scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Use a simple fetch to authenticate -->
+  <script>
+    // Show toast notification
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      
+      toast.classList.toggle('text-bg-danger', isError);
+      toast.classList.toggle('text-bg-primary', !isError);
+      
+      const toastBody = toast.querySelector('.toast-body');
+      if (toastBody) toastBody.textContent = message;
+      
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+    }
+    
+    // Show a specific view and hide others
+    function showView(viewId) {
+      document.querySelectorAll('.auth-view').forEach(view => {
+        view.classList.add('d-none');
+      });
+      const view = document.getElementById(viewId);
+      if (view) view.classList.remove('d-none');
+    }
+    
+    // Handle login
+    async function handleLogin() {
+      try {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        if (!email || !password) {
+          showToast('Please enter both email and password', true);
+          return;
+        }
+        
+        console.log('Attempting to sign in user:', email);
+        
+        // Use fetch to authenticate with Cognito
+        const response = await fetch('https://cognito-idp.us-east-1.amazonaws.com/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-amz-json-1.1',
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth'
+          },
+          body: JSON.stringify({
+            AuthFlow: 'USER_PASSWORD_AUTH',
+            ClientId: 'po58vsdfo8oklv3s5sadhe812',
+            AuthParameters: {
+              USERNAME: email,
+              PASSWORD: password
+            }
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.AuthenticationResult) {
+          console.log('Sign in successful');
+          showToast('Login successful!');
+          
+          // Store tokens
+          localStorage.setItem('accessToken', data.AuthenticationResult.AccessToken);
+          localStorage.setItem('idToken', data.AuthenticationResult.IdToken);
+          
+          // Redirect to dashboard
+          window.location.href = '/public/dashboard.html';
+        } else {
+          throw new Error(data.message || 'Authentication failed');
+        }
+      } catch (error) {
+        console.error('Error signing in:', error);
+        showToast(`Login failed: ${error.message}`, true);
+      }
+    }
+
+    // Add this function to handle registration
+    // Replace your handleRegister function with this fixed version
+    async function handleRegister() {
+      try {
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        
+        if (!email || !password) {
+          showToast('Please enter both email and password', true);
+          return;
+        }
+        
+        console.log('Attempting to register user:', email);
+        
+        // Use fetch to register with Cognito
+        const response = await fetch('https://cognito-idp.us-east-1.amazonaws.com/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-amz-json-1.1',
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.SignUp'
+          },
+          body: JSON.stringify({
+            ClientId: 'po58vsdfo8oklv3s5sadhe812',
+            Username: email,
+            Password: password,
+            UserAttributes: [
+              {
+                Name: 'email',
+                Value: email
+              }
+            ]
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.UserConfirmed === false) {
+          showToast('Registration successful! Please check your email for verification code.');
+          // Pre-fill email in confirmation form
+          document.getElementById('confirm-email').value = email;
+          showView('confirm-view');
+        } else {
+          showToast('Registration successful! You can now login.');
+          showView('login-view');
+        }
+      } catch (error) {
+        console.error('Error registering:', error);
+        showToast(`Registration failed: ${error.message}`, true);
+      }
+    }
+
+
+    // Add this to your DOMContentLoaded event listener
+    document.getElementById('register-btn').addEventListener('click', handleRegister);
+    document.getElementById('link-to-login').addEventListener('click', (e) => {
+      e.preventDefault();
+      showView('login-view');
+    });
+
+    // Add this function to handle confirmation
+    async function handleConfirm() {
+      try {
+        const email = document.getElementById('confirm-email').value;
+        const code = document.getElementById('confirm-code').value;
+        
+        if (!email || !code) {
+          showToast('Please enter both email and verification code', true);
+          return;
+        }
+        
+        console.log('Attempting to confirm user:', email);
+        
+        // Use fetch to confirm registration with Cognito
+        const response = await fetch('https://cognito-idp.us-east-1.amazonaws.com/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-amz-json-1.1',
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.ConfirmSignUp'
+          },
+          body: JSON.stringify({
+            ClientId: 'po58vsdfo8oklv3s5sadhe812',
+            Username: email,
+            ConfirmationCode: code
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showToast('Email confirmed! You can now login.');
+          showView('login-view');
+        } else {
+          throw new Error(data.message || 'Confirmation failed');
+        }
+      } catch (error) {
+        console.error('Error confirming registration:', error);
+        showToast(`Confirmation failed: ${error.message}`, true);
+      }
+    }
+
+    // Initialize event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      // Login view
+      document.getElementById('login-btn').addEventListener('click', handleLogin);
+      document.getElementById('link-to-register').addEventListener('click', (e) => {
+        e.preventDefault();
+        showView('register-view');
+      });
+      // Add this to your DOMContentLoaded event listener
+      document.getElementById('google-btn').addEventListener('click', () => {
+        // Redirect to Google OAuth flow
+        Amplify.Auth.federatedSignIn({ provider: 'Google' });
+      });
+
+      // Add these to your DOMContentLoaded event listener
+      document.getElementById('confirm-btn').addEventListener('click', handleConfirm);
+      document.getElementById('link-to-login-from-confirm').addEventListener('click', (e) => {
+        e.preventDefault();
+        showView('login-view');
+      });
+
+
+      // Other event listeners...
+    });
+  </script>
 </body>
 </html>
