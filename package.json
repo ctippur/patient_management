@@ -1,11 +1,17 @@
 {
-  "name": "patient-management",
+  "name": "patient-management-api",
   "version": "1.0.0",
-  "description": "Patient Management System",
+  "description": "API for patient management system",
   "main": "index.js",
   "scripts": {
-    "build": "mkdir -p dist && cp -r public/* dist/ && cp index.html login.html dashboard.html dist/"
+    "deploy": "serverless deploy",
+    "remove": "serverless remove"
   },
-  "author": "",
-  "license": "ISC"
+  "dependencies": {
+    "aws-sdk": "^2.1048.0",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "serverless": "^3.0.0"
+  }
 }
