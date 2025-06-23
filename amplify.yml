@@ -1,13 +1,13 @@
 version: 1
 frontend:
   phases:
+    preBuild:
+      commands:
+        - npm install
     build:
       commands:
-        - echo "No build commands needed"
+        - npm run build
   artifacts:
-    baseDirectory: .
+    baseDirectory: dist
     files:
       - '**/*'
-    discard:
-      - 'node_modules/**/*'
-      - '.git/**/*'
