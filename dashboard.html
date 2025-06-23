@@ -164,8 +164,8 @@
             <button class="btn btn-primary btn-sm me-2 edit-btn" data-id="${patient.id}">Edit</button>
             <button class="btn btn-danger btn-sm delete-btn" data-id="${patient.id}">Delete</button>
             <div class="mt-2">
-              <a href="${window.location.origin}/history.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">Patient History</a>
-              <a href="${window.location.origin}/clinical_eval.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">New Visit</a>
+              <button class="btn btn-info btn-sm me-2 history-btn" data-id="${patient.id}">Patient History</button>
+              <button class="btn btn-info btn-sm me-2 visit-btn" data-id="${patient.id}">New Visit</button>
               <button class="btn btn-secondary btn-sm view-visits-btn" data-id="${patient.id}">View Past Visits</button>
             </div>
           </div>
@@ -184,6 +184,20 @@
       
       container.querySelectorAll('.view-visits-btn').forEach(btn => {
         btn.addEventListener('click', () => showPatientVisits(btn.dataset.id));
+      });
+      
+      container.querySelectorAll('.history-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const patientId = btn.dataset.id;
+          window.location.href = 'history.html?patientId=' + patientId;
+        });
+      });
+      
+      container.querySelectorAll('.visit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const patientId = btn.dataset.id;
+          window.location.href = 'clinical_eval.html?patientId=' + patientId;
+        });
       });
     }
 

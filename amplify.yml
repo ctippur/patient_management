@@ -38,3 +38,6 @@ frontend:
     - source: '/public/clinical_eval'
       target: '/clinical_eval.html'
       status: '200'
+    - source: '/<*>'
+      target: '/404.html'
+      status: '404'
