@@ -82,6 +82,9 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
   
   <script>
+    // API configuration
+    const API_BASE_URL = 'https://dyzife14sc.execute-api.us-east-1.amazonaws.com/dev';
+    
     // Check if user is authenticated
     function isAuthenticated() {
       const token = localStorage.getItem('accessToken');
@@ -94,14 +97,46 @@
       return { username: email || 'User' };
     }
 
-    // Get patients from localStorage
-    function getPatients() {
+    // Get patients from API or localStorage
+    async function getPatients() {
       try {
-        const patientsJson = localStorage.getItem('patients');
-        return patientsJson ? JSON.parse(patientsJson) : [];
+        // Try to fetch from API first
+        const response = await fetch(`${API_BASE_URL}/patients`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const patients = await response.json();
+        localStorage.setItem('patients', JSON.stringify(patients));
+        return patients;
       } catch (error) {
-        console.error('Error getting patients:', error);
-        return [];
+        console.error('Error fetching patients from API:', error);
+        
+        // Fall back to localStorage
+        try {
+          const patientsJson = localStorage.getItem('patients');
+          return patientsJson ? JSON.parse(patientsJson) : [];
+        } catch (error) {
+          console.error('Error getting patients from localStorage:', error);
+          return [];
+        }
+      }
+    }
+
+    // Get patient by ID
+    async function getPatientById(id) {
+      try {
+        // Try to fetch from API first
+        const response = await fetch(`${API_BASE_URL}/patient/${id}`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching patient from API:', error);
+        
+        // Fall back to localStorage
+        const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+        return patients.find(patient => patient.id === id);
       }
     }
 
@@ -131,6 +166,15 @@
           </div>
         `;
         container.appendChild(div);
+      });
+      
+      // Add event listeners for buttons
+      container.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleEditPatient(btn.dataset.id));
+      });
+      
+      container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleDeletePatient(btn.dataset.id));
       });
     }
 
@@ -166,7 +210,7 @@
     }
 
     // Initialize dashboard
-    function loadDashboard() {
+    async function loadDashboard() {
       if (!isAuthenticated()) {
         showToast('Please log in to access the dashboard', true);
         setTimeout(() => {
@@ -181,19 +225,341 @@
         greeting.textContent = `Welcome, ${user.username}`;
       }
       
-      const patients = getPatients();
-      displayPatients(patients);
+      try {
+        const patients = await getPatients();
+        displayPatients(patients);
+      } catch (error) {
+        console.error('Error loading patients:', error);
+        showToast('Error loading patients', true);
+      }
+    }
+
+    // Add patient
+    async function addPatient(patientData) {
+      try {
+        const { name, dob, email, phone } = patientData;
+        
+        if (!name || !dob || !email) {
+          showToast('Name, DOB, and Email are required.', true);
+          return;
+        }
+
+        // Try to add patient to API
+        try {
+          const response = await fetch(`${API_BASE_URL}/patients`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, dob, email, phone })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          
+          showToast('Patient added successfully!');
+          
+          // Reload the dashboard
+          loadDashboard();
+        } catch (error) {
+          console.error('Error adding patient to API:', error);
+          
+          // Fall back to localStorage
+          const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+          
+          // Add new patient
+          const newPatient = {
+            id: 'patient-' + Date.now(),
+            name,
+            dob,
+            email,
+            phone,
+            createdAt: new Date().toISOString()
+          };
+          
+          patients.push(newPatient);
+          
+          // Save to localStorage
+          localStorage.setItem('patients', JSON.stringify(patients));
+          
+          showToast('Patient added to local storage (API unavailable)');
+          
+          // Reload the dashboard
+          loadDashboard();
+        }
+      } catch (error) {
+        console.error('Error saving patient:', error);
+        showToast('Failed to save patient: ' + error.message, true);
+      }
+    }
+
+    // Form handler for submit event
+    async function handleAddPatient(event) {
+      if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      
+      console.log('Add patient form submitted');
+      
+      const name = document.getElementById('patient-name')?.value.trim();
+      const dob = document.getElementById('patient-dob')?.value;
+      const email = document.getElementById('patient-email')?.value.trim();
+      const phone = document.getElementById('patient-phone')?.value.trim();
+      const id = document.getElementById('patient-id')?.value;
+      
+      if (id) {
+        // Update existing patient
+        updatePatient({ id, name, dob, email, phone });
+      } else {
+        // Add new patient
+        addPatient({ name, dob, email, phone });
+      }
+      
+      const form = document.getElementById('add-patient-form');
+      if (form) {
+        form.reset();
+      }
+      
+      // Close modal if it exists
+      try {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addPatientModal'));
+        if (modal) {
+          modal.hide();
+        }
+      } catch (error) {
+        console.error('Error hiding modal:', error);
+      }
+    }
+
+    // Update patient
+    async function updatePatient(patientData) {
+      try {
+        const { id, name, dob, email, phone } = patientData;
+        
+        if (!id || !name || !dob || !email) {
+          showToast('ID, Name, DOB, and Email are required.', true);
+          return;
+        }
+        
+        // Try to update patient in API
+        try {
+          const response = await fetch(`${API_BASE_URL}/patient/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, dob, email, phone })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          
+          showToast('Patient updated successfully!');
+          
+          // Reload the dashboard
+          loadDashboard();
+        } catch (error) {
+          console.error('Error updating patient in API:', error);
+          
+          // Fall back to localStorage
+          const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+          
+          // Find and update the patient
+          const index = patients.findIndex(p => p.id === id);
+          if (index === -1) {
+            showToast('Patient not found.', true);
+            return;
+          }
+          
+          patients[index] = {
+            ...patients[index],
+            name,
+            dob,
+            email,
+            phone,
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Save to localStorage
+          localStorage.setItem('patients', JSON.stringify(patients));
+          
+          showToast('Patient updated in local storage (API unavailable)');
+          
+          // Reload the dashboard
+          loadDashboard();
+        }
+      } catch (error) {
+        console.error('Error updating patient:', error);
+        showToast('Failed to update patient: ' + error.message, true);
+      }
+    }
+
+    // Handle edit patient
+    async function handleEditPatient(id) {
+      try {
+        const patient = await getPatientById(id);
+        if (!patient) {
+          showToast('Patient not found.', true);
+          return;
+        }
+        
+        // Fill the form with patient data
+        const nameField = document.getElementById('patient-name');
+        const dobField = document.getElementById('patient-dob');
+        const emailField = document.getElementById('patient-email');
+        const phoneField = document.getElementById('patient-phone');
+        const idField = document.getElementById('patient-id');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        if (nameField) nameField.value = patient.name;
+        if (dobField) dobField.value = patient.dob;
+        if (emailField) emailField.value = patient.email;
+        if (phoneField) phoneField.value = patient.phone || '';
+        if (idField) idField.value = patient.id;
+        if (submitBtn) submitBtn.textContent = 'Update Patient';
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('addPatientModal'));
+        modal.show();
+      } catch (error) {
+        console.error('Error editing patient:', error);
+        showToast('Failed to edit patient: ' + error.message, true);
+      }
+    }
+
+    // Handle delete patient
+    async function handleDeletePatient(id) {
+      try {
+        if (!confirm('Are you sure you want to delete this patient?')) {
+          return;
+        }
+        
+        // Try to delete patient from API
+        try {
+          const response = await fetch(`${API_BASE_URL}/patient/${id}`, {
+            method: 'DELETE'
+          });
+          
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          
+          showToast('Patient deleted successfully!');
+          
+          // Reload the dashboard
+          loadDashboard();
+        } catch (error) {
+          console.error('Error deleting patient from API:', error);
+          
+          // Fall back to localStorage
+          const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+          
+          // Find and remove the patient
+          const index = patients.findIndex(p => p.id === id);
+          if (index === -1) {
+            showToast('Patient not found.', true);
+            return;
+          }
+          
+          patients.splice(index, 1);
+          
+          // Save to localStorage
+          localStorage.setItem('patients', JSON.stringify(patients));
+          
+          showToast('Patient deleted from local storage (API unavailable)');
+          
+          // Reload the dashboard
+          loadDashboard();
+        }
+      } catch (error) {
+        console.error('Error deleting patient:', error);
+        showToast('Failed to delete patient: ' + error.message, true);
+      }
     }
 
     // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
       loadDashboard();
       
+      const form = document.getElementById('add-patient-form');
+      if (form) {
+        form.addEventListener('submit', handleAddPatient);
+      }
+      
       const logoutLink = document.getElementById('logout-link');
       if (logoutLink) {
         logoutLink.addEventListener('click', handleLogout);
       }
+      
+      const addPatientBtn = document.getElementById('add-patient-btn');
+      if (addPatientBtn) {
+        addPatientBtn.addEventListener('click', () => {
+          try {
+            // Reset form if it exists
+            const form = document.getElementById('add-patient-form');
+            if (form) form.reset();
+            
+            // Reset ID field
+            const idField = document.getElementById('patient-id');
+            if (idField) idField.value = '';
+            
+            // Reset submit button text
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) submitBtn.textContent = 'Add Patient';
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('addPatientModal'));
+            modal.show();
+          } catch (error) {
+            console.error('Error showing add patient modal:', error);
+          }
+        });
+      }
+      
+      const searchBtn = document.getElementById('search-patient-btn');
+      if (searchBtn) {
+        searchBtn.addEventListener('click', handleSearch);
+      }
+      
+      // Also add this for search on Enter key
+      const searchInput = document.getElementById('search-query');
+      if (searchInput) {
+        searchInput.addEventListener('keyup', (e) => {
+          if (e.key === 'Enter') {
+            handleSearch();
+          }
+        });
+      }
     });
+    
+    // Handle search
+    async function handleSearch() {
+      const query = document.getElementById('search-query')?.value.toLowerCase() || '';
+      if (!query) {
+        loadDashboard(); // If search is empty, just reload all patients
+        return;
+      }
+      
+      try {
+        // Get all patients
+        const patients = await getPatients();
+        
+        // Filter patients based on search query
+        const filteredPatients = patients.filter(patient => 
+          patient.name.toLowerCase().includes(query) || 
+          (patient.email && patient.email.toLowerCase().includes(query)) ||
+          (patient.phone && patient.phone.toLowerCase().includes(query))
+        );
+        
+        // Display filtered patients
+        displayPatients(filteredPatients);
+      } catch (error) {
+        console.error('Error searching patients:', error);
+        showToast('Failed to search patients: ' + error.message, true);
+      }
+    }
   </script>
 </body>
 </html>
