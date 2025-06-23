@@ -142,7 +142,7 @@ async function loadDashboard() {
       // Redirect to login page if not authenticated
       showToast('Please log in to access the dashboard', true);
       setTimeout(() => {
-        navigateTo('login.html');
+        navigateToLogin();
       }, 1000);
       return;
     }
@@ -161,7 +161,7 @@ async function loadDashboard() {
       console.error('Failed to fetch user info:', error);
       showToast('Session expired. Please log in again.', true);
       setTimeout(() => {
-        navigateTo('login.html');
+        navigateToLogin();
       }, 1500);
     }
   } catch (error) {
