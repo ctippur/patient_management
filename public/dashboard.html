@@ -114,21 +114,40 @@
       return { username: email || 'User' };
     }
 
-    // Get patients from localStorage
-    function getPatients() {
+    // Get patients from API
+    async function getPatients() {
       try {
-        const patientsJson = localStorage.getItem('patients');
-        return patientsJson ? JSON.parse(patientsJson) : [];
+        const response = await fetch(`${API_BASE_URL}/patients`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const patients = await response.json();
+        
+        // Get current user
+        const currentUser = getCurrentUser();
+        
+        // Filter patients by owner
+        return patients.filter(patient => 
+          patient.owner === currentUser.username || !patient.owner
+        );
       } catch (error) {
-        console.error('Error getting patients:', error);
+        console.error('Error getting patients from API:', error);
         return [];
       }
     }
 
     // Get patient by ID
-    function getPatientById(id) {
-      const patients = getPatients();
-      return patients.find(patient => patient.id === id);
+    async function getPatientById(id) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/patient/${id}`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching patient:', error);
+        throw error;
+      }
     }
 
     // Display patients
@@ -201,7 +220,7 @@
     }
 
     // Initialize dashboard
-    function loadDashboard() {
+    async function loadDashboard() {
       if (!isAuthenticated()) {
         showToast('Please log in to access the dashboard', true);
         setTimeout(() => {
@@ -216,12 +235,17 @@
         greeting.textContent = `Welcome, ${user.username}`;
       }
       
-      const patients = getPatients();
-      displayPatients(patients);
+      try {
+        const patients = await getPatients();
+        displayPatients(patients);
+      } catch (error) {
+        console.error('Error loading patients:', error);
+        showToast('Error loading patients: ' + error.message, true);
+      }
     }
 
     // Add patient
-    function addPatient(patientData) {
+    async function addPatient(patientData) {
       try {
         const { name, dob, email, phone } = patientData;
         
@@ -230,23 +254,30 @@
           return;
         }
 
-        // Get existing patients
-        const patients = getPatients();
+        // Get current user
+        const currentUser = getCurrentUser();
         
-        // Add new patient
-        const newPatient = {
-          id: 'patient-' + Date.now(),
+        // Add owner information to patient data
+        const patientWithOwner = {
           name,
           dob,
           email,
           phone,
-          createdAt: new Date().toISOString()
+          owner: currentUser.username // Add owner field
         };
         
-        patients.push(newPatient);
+        // Add patient to API
+        const response = await fetch(`${API_BASE_URL}/patients`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(patientWithOwner)
+        });
         
-        // Save to localStorage
-        localStorage.setItem('patients', JSON.stringify(patients));
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
         
         showToast('Patient added successfully!');
         
@@ -297,7 +328,7 @@
     }
 
     // Update patient
-    function updatePatient(patientData) {
+    async function updatePatient(patientData) {
       try {
         const { id, name, dob, email, phone } = patientData;
         
@@ -306,27 +337,18 @@
           return;
         }
         
-        // Get existing patients
-        const patients = getPatients();
+        // Update patient in API
+        const response = await fetch(`${API_BASE_URL}/patient/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, dob, email, phone })
+        });
         
-        // Find and update the patient
-        const index = patients.findIndex(p => p.id === id);
-        if (index === -1) {
-          showToast('Patient not found.', true);
-          return;
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
         }
-        
-        patients[index] = {
-          ...patients[index],
-          name,
-          dob,
-          email,
-          phone,
-          updatedAt: new Date().toISOString()
-        };
-        
-        // Save to localStorage
-        localStorage.setItem('patients', JSON.stringify(patients));
         
         showToast('Patient updated successfully!');
         
@@ -339,9 +361,9 @@
     }
 
     // Handle edit patient
-    function handleEditPatient(id) {
+    async function handleEditPatient(id) {
       try {
-        const patient = getPatientById(id);
+        const patient = await getPatientById(id);
         if (!patient) {
           showToast('Patient not found.', true);
           return;
@@ -372,26 +394,20 @@
     }
 
     // Handle delete patient
-    function handleDeletePatient(id) {
+    async function handleDeletePatient(id) {
       try {
         if (!confirm('Are you sure you want to delete this patient?')) {
           return;
         }
         
-        // Get existing patients
-        const patients = getPatients();
+        // Delete patient from API
+        const response = await fetch(`${API_BASE_URL}/patient/${id}`, {
+          method: 'DELETE'
+        });
         
-        // Find and remove the patient
-        const index = patients.findIndex(p => p.id === id);
-        if (index === -1) {
-          showToast('Patient not found.', true);
-          return;
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
         }
-        
-        patients.splice(index, 1);
-        
-        // Save to localStorage
-        localStorage.setItem('patients', JSON.stringify(patients));
         
         showToast('Patient deleted successfully!');
         
@@ -404,7 +420,7 @@
     }
 
     // Handle search
-    function handleSearch() {
+    async function handleSearch() {
       const query = document.getElementById('search-query')?.value.toLowerCase() || '';
       if (!query) {
         loadDashboard(); // If search is empty, just reload all patients
@@ -413,7 +429,7 @@
       
       try {
         // Get all patients
-        const patients = getPatients();
+        const patients = await getPatients();
         
         // Filter patients based on search query
         const filteredPatients = patients.filter(patient => 
@@ -432,7 +448,11 @@
 
     // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
-      loadDashboard();
+      // Load dashboard asynchronously
+      loadDashboard().catch(error => {
+        console.error('Error loading dashboard:', error);
+        showToast('Error loading dashboard: ' + error.message, true);
+      });
       
       const form = document.getElementById('add-patient-form');
       if (form) {
@@ -471,7 +491,12 @@
       
       const searchBtn = document.getElementById('search-patient-btn');
       if (searchBtn) {
-        searchBtn.addEventListener('click', handleSearch);
+        searchBtn.addEventListener('click', () => {
+          handleSearch().catch(error => {
+            console.error('Error searching patients:', error);
+            showToast('Error searching patients: ' + error.message, true);
+          });
+        });
       }
       
       // Also add this for search on Enter key
@@ -479,7 +504,10 @@
       if (searchInput) {
         searchInput.addEventListener('keyup', (e) => {
           if (e.key === 'Enter') {
-            handleSearch();
+            handleSearch().catch(error => {
+              console.error('Error searching patients:', error);
+              showToast('Error searching patients: ' + error.message, true);
+            });
           }
         });
       }
