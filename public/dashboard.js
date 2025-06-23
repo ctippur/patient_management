@@ -97,7 +97,7 @@ function displayPatients(patients) {
         <button class="btn btn-danger btn-sm delete-btn" data-id="${patient.id}">Delete</button>
         <div class="mt-2">
           <a href="history.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">Patient History</a>
-          <a href="/clinical_eval.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">New Visit</a>
+          <a href="clinical_eval.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">New Visit</a>
           <button class="btn btn-secondary btn-sm view-visits-btn" data-id="${patient.id}">View Past Visits</button>
         </div>
       </div>
@@ -150,7 +150,7 @@ function handleSearch() {
 async function loadDashboard() {
   try {
     if (!isAuthenticated()) {
-      window.location.href = '/dashboard.html';
+      navigateToDashboard();
       return;
     }
     
@@ -172,7 +172,7 @@ async function loadDashboard() {
 async function loadDashboard1() {
   try {
     if (!isAuthenticated()) {
-      window.location.href = '/';
+      navigateTo('');
       return;
     }
     
@@ -207,7 +207,7 @@ async function loadDashboard1() {
           <button class="btn btn-danger btn-sm delete-btn" data-id="${patient.id}">Delete</button>
           <div class="mt-2">
             <a href="history.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">Patient History</a>
-            <a href="/clinical_eval.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">New Visit</a>
+            <a href="clinical_eval.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">New Visit</a>
             <button class="btn btn-secondary btn-sm view-visits-btn" data-id="${patient.id}">View Past Exams</button>
           </div>
         </div>
@@ -237,7 +237,7 @@ async function loadDashboard1() {
 function handleLogout() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('idToken');
-  window.location.href = '/';
+  navigateTo('');
 }
 
 // Add patient
@@ -449,7 +449,7 @@ function showPatientExams(patientId) {
                 '<div class="alert alert-info">No past examinations found.</div>' : 
                 `<div class="list-group">
                   ${exams.map(exam => `
-                    <a href="/clinical_eval.html?patientId=${patientId}&examId=${exam.id}" class="list-group-item list-group-item-action">
+                    <a href="clinical_eval.html?patientId=${patientId}&examId=${exam.id}" class="list-group-item list-group-item-action">
                       <div class="d-flex w-100 justify-content-between">
                         <h5 class="mb-1">Exam on ${new Date(exam.date).toLocaleDateString()}</h5>
                       </div>
@@ -512,7 +512,7 @@ function showPatientVisits(patientId) {
                 '<div class="alert alert-info">No past visits found.</div>' : 
                 `<div class="list-group">
                   ${visits.map(visit => `
-                    <a href="/clinical_eval.html?patientId=${patientId}&visitId=${visit.id}" class="list-group-item list-group-item-action">
+                    <a href="clinical_eval.html?patientId=${patientId}&visitId=${visit.id}" class="list-group-item list-group-item-action">
                       <div class="d-flex w-100 justify-content-between">
                         <h5 class="mb-1">Visit on ${new Date(visit.date).toLocaleDateString()}</h5>
                         <span class="badge ${visit.diagnosis ? 'bg-success' : 'bg-warning'}">${visit.diagnosis ? 'Diagnosis Available' : 'No Diagnosis'}</span>

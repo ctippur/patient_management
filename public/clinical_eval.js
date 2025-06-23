@@ -663,7 +663,7 @@ async function saveVisit() {
       // Remove these lines from saveVisit function
       showToast('Visit saved successfully!');
       setTimeout(() => {
-        window.location.href = 'dashboard.html';
+        navigateTo('dashboard.html');
       }, 1500);
 
       // Replace with just a toast message
@@ -808,7 +808,7 @@ function saveToLocalStorage(visitData) {
     // Remove these lines from saveToLocalStorage function
     showToast('Visit saved to localStorage successfully!');
     setTimeout(() => {
-      window.location.href = 'dashboard.html';
+      navigateTo('dashboard.html');
     }, 1500);
 
     // Replace with just a toast message
@@ -1011,7 +1011,7 @@ function loadFromLocalStorage() {
     } else {
       showToast('Visit not found in localStorage', true);
       setTimeout(() => {
-        window.location.href = 'dashboard.html';
+        navigateToDashboard();
       }, 1500);
     }
   } catch (error) {

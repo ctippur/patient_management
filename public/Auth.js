@@ -32,7 +32,7 @@ async function handleLogin(username, password) {
     showToast('Login successful!');
     
     // Redirect to dashboard
-    window.location.href = 'dashboard.html';
+    navigateToDashboard();
     
     return { success: true, user: result };
   } catch (error) {
@@ -81,7 +81,7 @@ async function handleLogout() {
     
     await AWS.Auth.signOut();
     showToast('Logged out successfully!');
-    window.location.href = '../index.html';
+    navigateToHome();
     return { success: true };
   } catch (error) {
     console.error('Error signing out:', error);
