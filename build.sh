@@ -9,6 +9,10 @@ mkdir -p build
 # Copy all files from public to build
 cp -r public/* build/
 
+# Copy root HTML files to the build directory
+cp index.html build/
+cp dashboard.html build/
+
 # Copy the redirects file to the build directory
 cp public/amplify-redirects.json build/
 
