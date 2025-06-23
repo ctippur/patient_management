@@ -184,10 +184,8 @@
       localStorage.removeItem('idToken');
       localStorage.removeItem('userEmail');
       
-      // Redirect to index using relative URL
-      const currentUrl = window.location.href;
-      const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
-      window.location.href = baseUrl + '/index.html';
+      // Redirect to index using absolute URL
+      window.location.href = window.location.origin + '/index.html';
     }
 
     // Show toast notification
@@ -218,10 +216,8 @@
       if (!isAuthenticated()) {
         showToast('Please log in to access the dashboard', true);
         setTimeout(() => {
-          // Redirect to login using relative URL
-          const currentUrl = window.location.href;
-          const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
-          window.location.href = baseUrl + '/login.html';
+          // Redirect to login using absolute URL
+          window.location.href = window.location.origin + '/login.html';
         }, 1000);
         return;
       }
@@ -486,6 +482,33 @@
       }
     }
 
+    // Handle search
+    async function handleSearch() {
+      const query = document.getElementById('search-query')?.value.toLowerCase() || '';
+      if (!query) {
+        loadDashboard(); // If search is empty, just reload all patients
+        return;
+      }
+      
+      try {
+        // Get all patients
+        const patients = await getPatients();
+        
+        // Filter patients based on search query
+        const filteredPatients = patients.filter(patient => 
+          patient.name.toLowerCase().includes(query) || 
+          (patient.email && patient.email.toLowerCase().includes(query)) ||
+          (patient.phone && patient.phone.toLowerCase().includes(query))
+        );
+        
+        // Display filtered patients
+        displayPatients(filteredPatients);
+      } catch (error) {
+        console.error('Error searching patients:', error);
+        showToast('Failed to search patients: ' + error.message, true);
+      }
+    }
+
     // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
       loadDashboard();
@@ -540,33 +563,6 @@
         });
       }
     });
-    
-    // Handle search
-    async function handleSearch() {
-      const query = document.getElementById('search-query')?.value.toLowerCase() || '';
-      if (!query) {
-        loadDashboard(); // If search is empty, just reload all patients
-        return;
-      }
-      
-      try {
-        // Get all patients
-        const patients = await getPatients();
-        
-        // Filter patients based on search query
-        const filteredPatients = patients.filter(patient => 
-          patient.name.toLowerCase().includes(query) || 
-          (patient.email && patient.email.toLowerCase().includes(query)) ||
-          (patient.phone && patient.phone.toLowerCase().includes(query))
-        );
-        
-        // Display filtered patients
-        displayPatients(filteredPatients);
-      } catch (error) {
-        console.error('Error searching patients:', error);
-        showToast('Failed to search patients: ' + error.message, true);
-      }
-    }
   </script>
 </body>
 </html>
