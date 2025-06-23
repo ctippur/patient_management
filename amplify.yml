@@ -10,28 +10,31 @@ frontend:
       - "*.html"
       - "*.js"
       - "*.css"
-      - "public/*.html"
-      - "public/*.js"
-      - "public/*.css"
+      - "public/**/*"
     discard:
       - "node_modules/**/*"
       - ".git/**/*"
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: 'Cache-Control'
+          value: 'no-store'
   customRules:
-    - source: "/dashboard"
-      target: "/dashboard.html"
-      status: "200"
-    - source: "/login"
-      target: "/login.html"
-      status: "200"
-    - source: "/public/dashboard"
-      target: "/dashboard.html"
-      status: "200"
-    - source: "/public/login"
-      target: "/login.html"
-      status: "200"
-    - source: "/public/dashboard/redirect-handler.js"
-      target: "/redirect-handler.js"
-      status: "200"
-    - source: "/public/dashboard/dashboard.js"
-      target: "/dashboard.js"
-      status: "200"
+    - source: '/public/dashboard/history'
+      target: '/history.html'
+      status: '200'
+    - source: '/public/dashboard/clinical_eval'
+      target: '/clinical_eval.html'
+      status: '200'
+    - source: '/history'
+      target: '/history.html'
+      status: '200'
+    - source: '/clinical_eval'
+      target: '/clinical_eval.html'
+      status: '200'
+    - source: '/public/history'
+      target: '/history.html'
+      status: '200'
+    - source: '/public/clinical_eval'
+      target: '/clinical_eval.html'
+      status: '200'
