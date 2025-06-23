@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clinical Evaluation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 2rem; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 0 12px rgba(0,0,0,0.1); }
+    .nav-tabs { margin-bottom: 20px; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label { font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2 class="mb-4">Clinical Evaluation</h2>
+  
+  <div id="patient-info" class="card mb-4 p-3">
+    <!-- Patient info will be loaded here -->
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+  
+  <!-- Navigation tabs -->
+  <ul class="nav nav-tabs" id="evalTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="clinical-tab" data-bs-toggle="tab" data-bs-target="#clinical" type="button" role="tab" aria-controls="clinical" aria-selected="true">Clinical Exam</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="instrumental-tab" data-bs-toggle="tab" data-bs-target="#instrumental" type="button" role="tab" aria-controls="instrumental" aria-selected="false">Instrumental Evaluation</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="diagnosis-tab" data-bs-toggle="tab" data-bs-target="#diagnosis" type="button" role="tab" aria-controls="diagnosis" aria-selected="false">Diagnosis</button>
+    </li>
+  </ul>
+  
+  <!-- Tab content -->
+  <div class="tab-content" id="evalTabContent">
+    <!-- Clinical Exam Tab -->
+    <div class="tab-pane fade show active" id="clinical" role="tabpanel" aria-labelledby="clinical-tab">
+      <form id="clinical-exam-form">
+        <div class="mb-3">
+          <label for="clinical-summary" class="form-label">Summary</label>
+          <textarea class="form-control" id="clinical-summary" rows="2" required></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="clinical-symptoms" class="form-label">Symptoms</label>
+          <textarea class="form-control" id="clinical-symptoms" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="clinical-observations" class="form-label">Observations</label>
+          <textarea class="form-control" id="clinical-observations" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Clinical Exam</button>
+      </form>
+    </div>
+    
+    <!-- Instrumental Evaluation Tab -->
+    <div class="tab-pane fade" id="instrumental" role="tabpanel" aria-labelledby="instrumental-tab">
+      <form id="instrumental-exam-form">
+        <div class="mb-3">
+          <label for="instrumental-findings" class="form-label">Findings</label>
+          <textarea class="form-control" id="instrumental-findings" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="instrumental-recommendations" class="form-label">Recommendations</label>
+          <textarea class="form-control" id="instrumental-recommendations" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="instrumental-file" class="form-label">Upload File</label>
+          <input class="form-control" type="file" id="instrumental-file">
+        </div>
+        <button type="submit" class="btn btn-primary">Save Instrumental Evaluation</button>
+      </form>
+    </div>
+    
+    <!-- Diagnosis Tab -->
+    <div class="tab-pane fade" id="diagnosis" role="tabpanel" aria-labelledby="diagnosis-tab">
+      <form id="diagnosis-form">
+        <div class="mb-3">
+          <label for="diagnosis" class="form-label">Diagnosis</label>
+          <textarea class="form-control" id="diagnosis" rows="5"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Diagnosis</button>
+        <button type="button" id="generate-diagnosis-btn" class="btn btn-warning">Generate Diagnosis</button>
+      </form>
+      <div id="diagnosis-result" class="mt-3"></div>
+    </div>
+  </div>
+  
+  <div class="mt-4 text-center">
+    <a href="dashboard.html" class="btn btn-secondary">Back to Dashboard</a>
+  </div>
+</div>
+
+<!-- Toast for notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="app-toast" class="toast align-items-center text-white bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap script -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Clinical evaluation script -->
+<script src="public/clinical_eval.js"></script>
+</body>
+</html>
