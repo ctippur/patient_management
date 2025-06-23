@@ -9,13 +9,23 @@ frontend:
   phases:
     build:
       commands:
-        - npm run build
-        - ./build.sh
+        - echo "No build commands needed"
   artifacts:
-    baseDirectory: build
+    baseDirectory: public
     files:
       - '**/*'
-  cache:
-    paths:
-      - .npm/**/*
-      - node_modules/**/*
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: 'Cache-Control'
+          value: 'max-age=0, no-cache, no-store, must-revalidate'
+  customRules:
+    - source: '/dashboard'
+      target: '/dashboard.html'
+      status: '200'
+    - source: '/dashboard/'
+      target: '/dashboard.html'
+      status: '200'
+    - source: '/<*>'
+      target: '/index.html'
+      status: '404-200'
