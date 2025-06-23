@@ -9,10 +9,11 @@ mkdir -p build
 # Copy all files from public to build
 cp -r public/* build/
 
+# Copy the redirects file to the build directory
+cp public/amplify-redirects.json build/
+
 # Fix any remaining absolute paths in JS files
-find build -name "*.js" -type f -exec sed -i '' 's|window.location.href = "/|window.location.href = "|g' {} \;
-find build -name "*.js" -type f -exec sed -i '' 's|fetch("/|fetch("|g' {} \;
-find build -name "*.html" -type f -exec sed -i '' 's|src="/|src="|g' {} \;
+find build -name "*.js" -type f -exec sed -i '' 's|window.location.href = "/|navigateTo("|g' {} \;
 find build -name "*.html" -type f -exec sed -i '' 's|href="/|href="|g' {} \;
 
 # Fix any links in HTML templates

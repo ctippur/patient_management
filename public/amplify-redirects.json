@@ -1,0 +1,36 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "target": "/public/index.html",
+      "status": "302"
+    },
+    {
+      "source": "/index.html",
+      "target": "/public/index.html",
+      "status": "302"
+    },
+    {
+      "source": "/dashboard.html",
+      "target": "/public/dashboard.html",
+      "status": "302"
+    },
+    {
+      "source": "/clinical_eval.html",
+      "target": "/public/clinical_eval.html",
+      "status": "302"
+    },
+    {
+      "source": "/login.html",
+      "target": "/public/login.html",
+      "status": "302"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/<*>",
+      "target": "/public/index.html",
+      "status": "404"
+    }
+  ]
+}

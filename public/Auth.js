@@ -15,28 +15,32 @@ function showToast(message, isError = false) {
   bsToast.show();
 }
 
-// Handle login with AWS Amplify
+// Handle login with simple localStorage authentication
 async function handleLogin(username, password) {
   try {
     console.log('Attempting to sign in user:', username);
     
-    // Make sure AWS is defined before using it
-    if (!AWS || !AWS.Auth) {
-      console.error('AWS or AWS.Auth is not defined. Make sure AWS Amplify is loaded.');
-      showToast('Authentication service not available', true);
-      return { success: false, error: 'Authentication service not available' };
+    // Simple demo authentication
+    if (username && password) {
+      // Store auth info in localStorage
+      localStorage.setItem('accessToken', 'demo-token-' + Date.now());
+      localStorage.setItem('idToken', 'demo-id-token-' + Date.now());
+      localStorage.setItem('userEmail', username);
+      
+      console.log('Sign in successful');
+      showToast('Login successful!');
+      
+      // Redirect to dashboard
+      setTimeout(() => {
+        navigateToDashboard();
+      }, 1000);
+      
+      return { success: true, user: { username } };
+    } else {
+      throw new Error('Email and password are required');
     }
-    
-    const result = await AWS.Auth.signIn(username, password);
-    console.log('Sign in successful');
-    showToast('Login successful!');
-    
-    // Redirect to dashboard
-    navigateToDashboard();
-    
-    return { success: true, user: result };
   } catch (error) {
-    console.error('Error signing in:', error.message, error.code);
+    console.error('Error signing in:', error.message);
     showToast(`Login failed: ${error.message}`, true);
     return { 
       success: false, 

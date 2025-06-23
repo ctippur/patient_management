@@ -29,30 +29,19 @@ function isAuthenticated() {
   return !!token;
 }
 
-// Get current user info from token
+// Get current user info from localStorage
 function getCurrentUser() {
-  const idToken = localStorage.getItem('idToken');
-  if (!idToken) {
+  const token = localStorage.getItem('accessToken');
+  const email = localStorage.getItem('userEmail');
+  
+  if (!token) {
     throw new Error("No authenticated user");
   }
   
-  try {
-    // Parse the JWT token
-    const base64Url = idToken.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-
-    const payload = JSON.parse(jsonPayload);
-    return {
-      username: payload['cognito:username'] || payload.email || payload.sub,
-      signInDetails: { loginId: payload.email }
-    };
-  } catch (error) {
-    console.error('Error parsing token:', error);
-    throw new Error("Invalid authentication token");
-  }
+  return {
+    username: email || 'User',
+    signInDetails: { loginId: email || 'user@example.com' }
+  };
 }
 
 // Get patients from localStorage
@@ -150,22 +139,34 @@ function handleSearch() {
 async function loadDashboard() {
   try {
     if (!isAuthenticated()) {
-      navigateToDashboard();
+      // Redirect to login page if not authenticated
+      showToast('Please log in to access the dashboard', true);
+      setTimeout(() => {
+        navigateTo('login.html');
+      }, 1000);
       return;
     }
     
-    const user = getCurrentUser();
-    const greeting = document.getElementById('user-greeting');
-    if (greeting) {
-      greeting.textContent = `Welcome, ${user.signInDetails?.loginId || user.username}`;
+    try {
+      const user = getCurrentUser();
+      const greeting = document.getElementById('user-greeting');
+      if (greeting) {
+        greeting.textContent = `Welcome, ${user.signInDetails?.loginId || user.username}`;
+      }
+      
+      // Get patients from localStorage
+      const patients = getPatients();
+      displayPatients(patients);
+    } catch (error) {
+      console.error('Failed to fetch user info:', error);
+      showToast('Session expired. Please log in again.', true);
+      setTimeout(() => {
+        navigateTo('login.html');
+      }, 1500);
     }
-    
-    // Get patients from localStorage
-    const patients = getPatients();
-    displayPatients(patients);
   } catch (error) {
-    console.error('Failed to fetch user info:', error);
-    showToast('Failed to fetch user session.', true);
+    console.error('Error in loadDashboard:', error);
+    showToast('An error occurred. Please try again.', true);
   }
 }
 
