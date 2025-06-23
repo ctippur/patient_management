@@ -1,10 +1,4 @@
 version: 1
-backend:
-  phases:
-    build:
-      commands:
-        - npm ci --cache .npm --prefer-offline
-        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
 frontend:
   phases:
     build:
@@ -14,30 +8,3 @@ frontend:
     baseDirectory: public
     files:
       - '**/*'
-  customHeaders:
-    - pattern: '**/*'
-      headers:
-        - key: 'Cache-Control'
-          value: 'max-age=0, no-cache, no-store, must-revalidate'
-  customRules:
-    - source: '/dashboard'
-      target: '/dashboard.html'
-      status: '200'
-    - source: '/dashboard/'
-      target: '/dashboard.html'
-      status: '200'
-    - source: '/login'
-      target: '/login.html'
-      status: '200'
-    - source: '/login/'
-      target: '/login.html'
-      status: '200'
-    - source: '/clinical_eval'
-      target: '/clinical_eval.html'
-      status: '200'
-    - source: '/clinical_eval/'
-      target: '/clinical_eval.html'
-      status: '200'
-    - source: '/<*>'
-      target: '/index.html'
-      status: '404-200'
