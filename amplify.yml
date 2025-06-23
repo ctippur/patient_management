@@ -5,6 +5,9 @@ frontend:
       commands:
         - echo "No build commands needed"
   artifacts:
-    baseDirectory: public
+    baseDirectory: .
     files:
       - '**/*'
+    discard:
+      - 'node_modules/**/*'
+      - '.git/**/*'
