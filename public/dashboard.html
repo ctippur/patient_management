@@ -458,7 +458,7 @@
     // Get patient visits
     async function getPatientVisits(patientId) {
       try {
-        const response = await fetch(`${API_BASE_URL}/patients/${patientId}/visits`);
+        const response = await fetch(`${API_BASE_URL}/patient-visits/${patientId}`);
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
@@ -466,6 +466,50 @@
       } catch (error) {
         console.error('Error getting patient visits:', error);
         return [];
+      }
+    }
+    
+    // Create visit
+    async function createVisit(visitData) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/visits`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(visitData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Error creating visit:', error);
+        throw error;
+      }
+    }
+    
+    // Update visit
+    async function updateVisit(visitId, visitData) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/visit/${visitId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(visitData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Error updating visit:', error);
+        throw error;
       }
     }
     
