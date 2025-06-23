@@ -135,14 +135,13 @@ function handleSearch() {
 }
 
 // Initialize dashboard
-
 async function loadDashboard() {
   try {
     if (!isAuthenticated()) {
       // Redirect to login page if not authenticated
       showToast('Please log in to access the dashboard', true);
       setTimeout(() => {
-        navigateToLogin();
+        window.location.href = '/login.html';
       }, 1000);
       return;
     }
@@ -161,7 +160,7 @@ async function loadDashboard() {
       console.error('Failed to fetch user info:', error);
       showToast('Session expired. Please log in again.', true);
       setTimeout(() => {
-        navigateToLogin();
+        window.location.href = '/login.html';
       }, 1500);
     }
   } catch (error) {
@@ -170,75 +169,12 @@ async function loadDashboard() {
   }
 }
 
-async function loadDashboard1() {
-  try {
-    if (!isAuthenticated()) {
-      navigateTo('');
-      return;
-    }
-    
-    const user = getCurrentUser();
-    const greeting = document.getElementById('user-greeting');
-    if (greeting) {
-      greeting.textContent = `Welcome, ${user.signInDetails?.loginId || user.username}`;
-    }
-    
-    // Get patients from localStorage
-    const patients = getPatients();
-    const container = document.getElementById('patient-list');
-    if (!container) return;
-    
-    if (patients.length === 0) {
-      container.innerHTML = '<div class="alert alert-info">No patients found. Add your first patient!</div>';
-      return;
-    }
-    
-    // Display patients
-    container.innerHTML = '';
-    patients.forEach(patient => {
-      const div = document.createElement('div');
-      div.className = 'card my-2 p-3';
-      div.innerHTML = `
-        <h5>${patient.name}</h5>
-        <p>Email: ${patient.email || 'N/A'}</p>
-        <p>DOB: ${patient.dob}</p>
-        <p>Phone: ${patient.phone || 'N/A'}</p>
-        <div class="mt-2">
-          <button class="btn btn-primary btn-sm me-2 edit-btn" data-id="${patient.id}">Edit</button>
-          <button class="btn btn-danger btn-sm delete-btn" data-id="${patient.id}">Delete</button>
-          <div class="mt-2">
-            <a href="history.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">Patient History</a>
-            <a href="clinical_eval.html?patientId=${patient.id}" class="btn btn-info btn-sm me-2">New Visit</a>
-            <button class="btn btn-secondary btn-sm view-visits-btn" data-id="${patient.id}">View Past Exams</button>
-          </div>
-        </div>
-      `;
-      container.appendChild(div);
-    });
-    
-    // Add event listeners for buttons
-    container.querySelectorAll('.edit-btn').forEach(btn => {
-      btn.addEventListener('click', () => handleEditPatient(btn.dataset.id));
-    });
-    
-    container.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => handleDeletePatient(btn.dataset.id));
-    });
-    
-    container.querySelectorAll('.view-visits-btn').forEach(btn => {
-      btn.addEventListener('click', () => showPatientVisits(btn.dataset.id));
-    });
-  } catch (error) {
-    console.error('Failed to fetch user info:', error);
-    showToast('Failed to fetch user session.', true);
-  }
-}
-
 // Handle logout
 function handleLogout() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('idToken');
-  navigateTo('');
+  localStorage.removeItem('userEmail');
+  window.location.href = '/index.html';
 }
 
 // Add patient
@@ -424,70 +360,7 @@ function handleDeletePatient(id) {
   }
 }
 
-// Show patient exams
-function showPatientExams(patientId) {
-  try {
-    // Get the patient's exams from localStorage
-    const exams = getPatientExams(patientId);
-    const patient = getPatientById(patientId);
-    
-    if (!patient) {
-      showToast('Patient not found.', true);
-      return;
-    }
-    
-    // Create a modal to display the exams
-    const modalHtml = `
-      <div class="modal fade" id="examsModal" tabindex="-1" aria-labelledby="examsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="examsModalLabel">Past Clinical Examinations - ${patient.name}</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              ${exams.length === 0 ? 
-                '<div class="alert alert-info">No past examinations found.</div>' : 
-                `<div class="list-group">
-                  ${exams.map(exam => `
-                    <a href="clinical_eval.html?patientId=${patientId}&examId=${exam.id}" class="list-group-item list-group-item-action">
-                      <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1">Exam on ${new Date(exam.date).toLocaleDateString()}</h5>
-                      </div>
-                      <p class="mb-1">${exam.summary || 'No summary available'}</p>
-                    </a>
-                  `).join('')}
-                </div>`
-              }
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    // Add the modal to the document
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer);
-    
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('examsModal'));
-    modal.show();
-    
-    // Remove the modal from the DOM when it's hidden
-    document.getElementById('examsModal').addEventListener('hidden.bs.modal', function () {
-      document.body.removeChild(modalContainer);
-    });
-  } catch (error) {
-    console.error('Error showing patient exams:', error);
-    showToast('Failed to show patient exams: ' + error.message, true);
-  }
-}
-
-// Add this function to dashboard.js
+// Show patient visits
 function showPatientVisits(patientId) {
   try {
     // Get the patient's visits from localStorage
@@ -552,7 +425,6 @@ function showPatientVisits(patientId) {
   }
 }
 
-
 // Get patient visits
 function getPatientVisits(patientId) {
   try {
@@ -560,18 +432,6 @@ function getPatientVisits(patientId) {
     return visitsJson ? JSON.parse(visitsJson) : [];
   } catch (error) {
     console.error('Error getting patient visits:', error);
-    return [];
-  }
-}
-
-
-// Get patient exams
-function getPatientExams(patientId) {
-  try {
-    const examsJson = localStorage.getItem(`patient_${patientId}_exams`);
-    return examsJson ? JSON.parse(examsJson) : [];
-  } catch (error) {
-    console.error('Error getting patient exams:', error);
     return [];
   }
 }
@@ -621,7 +481,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-
   // Also add this for search on Enter key
   const searchInput = document.getElementById('search-query');
   if (searchInput) {

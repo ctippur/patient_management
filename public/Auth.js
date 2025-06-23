@@ -3,7 +3,32 @@
 // Show toast notification
 function showToast(message, isError = false) {
   const toast = document.getElementById('toast');
-  if (!toast) return;
+  if (!toast) {
+    // Create a toast element if it doesn't exist
+    const toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    
+    const toastElement = document.createElement('div');
+    toastElement.id = 'toast';
+    toastElement.className = `toast align-items-center ${isError ? 'text-bg-danger' : 'text-bg-primary'} border-0`;
+    toastElement.setAttribute('role', 'alert');
+    toastElement.setAttribute('aria-live', 'assertive');
+    toastElement.setAttribute('aria-atomic', 'true');
+    
+    toastElement.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+    
+    toastContainer.appendChild(toastElement);
+    document.body.appendChild(toastContainer);
+    
+    const bsToast = new bootstrap.Toast(toastElement);
+    bsToast.show();
+    return;
+  }
   
   toast.classList.toggle('text-bg-danger', isError);
   toast.classList.toggle('text-bg-primary', !isError);
@@ -30,9 +55,32 @@ async function handleLogin(username, password) {
       console.log('Sign in successful');
       showToast('Login successful!');
       
+      // Create some sample patient data
+      const samplePatients = [
+        {
+          id: 'patient-1',
+          name: 'John Doe',
+          dob: '1980-05-15',
+          email: 'john.doe@example.com',
+          phone: '555-123-4567',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'patient-2',
+          name: 'Jane Smith',
+          dob: '1975-10-20',
+          email: 'jane.smith@example.com',
+          phone: '555-987-6543',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      // Store sample patient data
+      localStorage.setItem('patients', JSON.stringify(samplePatients));
+      
       // Redirect to dashboard
       setTimeout(() => {
-        navigateToDashboard();
+        window.location.href = '/dashboard.html';
       }, 1000);
       
       return { success: true, user: { username } };
@@ -49,43 +97,21 @@ async function handleLogin(username, password) {
   }
 }
 
-// Handle registration
-async function handleRegister(username, password) {
-  try {
-    if (!AWS || !AWS.Auth) {
-      console.error('AWS or AWS.Auth is not defined');
-      showToast('Authentication service not available', true);
-      return { success: false };
-    }
-    
-    const result = await AWS.Auth.signUp({
-      username,
-      password,
-      attributes: {
-        email: username
-      }
-    });
-    
-    showToast('Registration successful! Please check your email for verification code.');
-    return { success: true, result };
-  } catch (error) {
-    console.error('Error signing up:', error);
-    showToast(`Registration failed: ${error.message}`, true);
-    return { success: false, error };
-  }
-}
-
 // Handle logout
 async function handleLogout() {
   try {
-    if (!AWS || !AWS.Auth) {
-      console.error('AWS or AWS.Auth is not defined');
-      return { success: false };
-    }
+    // Clear localStorage
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('idToken');
+    localStorage.removeItem('userEmail');
     
-    await AWS.Auth.signOut();
     showToast('Logged out successfully!');
-    navigateToHome();
+    
+    // Redirect to home
+    setTimeout(() => {
+      window.location.href = '/index.html';
+    }, 1000);
+    
     return { success: true };
   } catch (error) {
     console.error('Error signing out:', error);
@@ -96,5 +122,4 @@ async function handleLogout() {
 
 // Make functions available globally
 window.handleLogin = handleLogin;
-window.handleRegister = handleRegister;
 window.handleLogout = handleLogout;
