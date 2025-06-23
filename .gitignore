@@ -30,3 +30,7 @@ amplifyconfiguration*
 
 # Configuration files with sensitive data
 public/config.js
+
+# Build output
+build/
+dist/
