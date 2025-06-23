@@ -183,7 +183,11 @@
       localStorage.removeItem('accessToken');
       localStorage.removeItem('idToken');
       localStorage.removeItem('userEmail');
-      window.location.href = 'index.html';
+      
+      // Redirect to index using relative URL
+      const currentUrl = window.location.href;
+      const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
+      window.location.href = baseUrl + '/index.html';
     }
 
     // Show toast notification
@@ -214,7 +218,10 @@
       if (!isAuthenticated()) {
         showToast('Please log in to access the dashboard', true);
         setTimeout(() => {
-          window.location.href = 'login.html';
+          // Redirect to login using relative URL
+          const currentUrl = window.location.href;
+          const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
+          window.location.href = baseUrl + '/login.html';
         }, 1000);
         return;
       }

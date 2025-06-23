@@ -69,9 +69,11 @@
               // Show success message
               showToast('Login successful!');
               
-              // Redirect to dashboard
+              // Redirect to dashboard using absolute URL
               setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                const currentUrl = window.location.href;
+                const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
+                window.location.href = baseUrl + '/dashboard.html';
               }, 1000);
             })
             .catch(error => {
@@ -101,9 +103,11 @@
               // Store sample patient data
               localStorage.setItem('patients', JSON.stringify(samplePatients));
               
-              // Redirect to dashboard
+              // Redirect to dashboard using absolute URL
               setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                const currentUrl = window.location.href;
+                const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
+                window.location.href = baseUrl + '/dashboard.html';
               }, 1000);
             });
         } else {
