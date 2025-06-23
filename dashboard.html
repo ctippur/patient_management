@@ -189,14 +189,38 @@
       container.querySelectorAll('.history-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const patientId = btn.dataset.id;
-          window.location.href = 'history.html?patientId=' + patientId;
+          // Create a form and submit it to navigate to history page
+          const form = document.createElement('form');
+          form.method = 'GET';
+          form.action = 'history.html';
+          
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'patientId';
+          input.value = patientId;
+          
+          form.appendChild(input);
+          document.body.appendChild(form);
+          form.submit();
         });
       });
       
       container.querySelectorAll('.visit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const patientId = btn.dataset.id;
-          window.location.href = 'clinical_eval.html?patientId=' + patientId;
+          // Create a form and submit it to navigate to clinical eval page
+          const form = document.createElement('form');
+          form.method = 'GET';
+          form.action = 'clinical_eval.html';
+          
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'patientId';
+          input.value = patientId;
+          
+          form.appendChild(input);
+          document.body.appendChild(form);
+          form.submit();
         });
       });
     }
