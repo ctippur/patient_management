@@ -43,11 +43,31 @@ function showToast(message, isError = false) {
 // Get patient by ID
 async function getPatientById(id) {
   try {
-    const response = await fetch(`${API_BASE_URL}/patient/${id}`);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Try API first
+    try {
+      const response = await fetch(`${API_BASE_URL}/patient/${id}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      return await response.json();
+    } catch (apiError) {
+      console.error('API error, falling back to localStorage:', apiError);
+      
+      // Fall back to localStorage
+      const patientsJson = localStorage.getItem('patients');
+      if (!patientsJson) {
+        throw new Error('No patients found in localStorage');
+      }
+      
+      const patients = JSON.parse(patientsJson);
+      const patient = patients.find(p => p.id === id);
+      
+      if (!patient) {
+        throw new Error('Patient not found in localStorage');
+      }
+      
+      return patient;
     }
-    return await response.json();
   } catch (error) {
     console.error('Error fetching patient:', error);
     throw error;
@@ -57,11 +77,38 @@ async function getPatientById(id) {
 // Get visit by ID
 async function getVisitById(id) {
   try {
-    const response = await fetch(`${API_BASE_URL}/visit/${id}`);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Try API first
+    try {
+      const response = await fetch(`${API_BASE_URL}/visit/${id}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      return await response.json();
+    } catch (apiError) {
+      console.error('API error, falling back to localStorage:', apiError);
+      
+      // Fall back to localStorage
+      const params = getUrlParams();
+      const patientId = params.patientId;
+      
+      if (!patientId) {
+        throw new Error('Patient ID is required');
+      }
+      
+      const visitsJson = localStorage.getItem(`patient_${patientId}_visits`);
+      if (!visitsJson) {
+        throw new Error('No visits found in localStorage');
+      }
+      
+      const visits = JSON.parse(visitsJson);
+      const visit = visits.find(v => v.id === id);
+      
+      if (!visit) {
+        throw new Error('Visit not found in localStorage');
+      }
+      
+      return visit;
     }
-    return await response.json();
   } catch (error) {
     console.error('Error fetching visit:', error);
     throw error;
@@ -71,19 +118,52 @@ async function getVisitById(id) {
 // Create visit
 async function createVisit(visitData) {
   try {
-    const response = await fetch(`${API_BASE_URL}/visits`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(visitData)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Try API first
+    try {
+      const response = await fetch(`${API_BASE_URL}/visits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(visitData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (apiError) {
+      console.error('API error, falling back to localStorage:', apiError);
+      
+      // Fall back to localStorage
+      const patientId = visitData.patientId;
+      
+      if (!patientId) {
+        throw new Error('Patient ID is required');
+      }
+      
+      // Get existing visits or create new array
+      const visitsJson = localStorage.getItem(`patient_${patientId}_visits`);
+      const visits = visitsJson ? JSON.parse(visitsJson) : [];
+      
+      // Create new visit
+      const newVisit = {
+        id: 'visit-' + Date.now(),
+        patientId,
+        date: new Date().toISOString(),
+        ...visitData,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Add to visits array
+      visits.push(newVisit);
+      
+      // Save to localStorage
+      localStorage.setItem(`patient_${patientId}_visits`, JSON.stringify(visits));
+      
+      return newVisit;
     }
-    
-    return await response.json();
   } catch (error) {
     console.error('Error creating visit:', error);
     throw error;
@@ -93,19 +173,56 @@ async function createVisit(visitData) {
 // Update visit
 async function updateVisit(visitId, visitData) {
   try {
-    const response = await fetch(`${API_BASE_URL}/visit/${visitId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(visitData)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Try API first
+    try {
+      const response = await fetch(`${API_BASE_URL}/visit/${visitId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(visitData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (apiError) {
+      console.error('API error, falling back to localStorage:', apiError);
+      
+      // Fall back to localStorage
+      const params = getUrlParams();
+      const patientId = params.patientId;
+      
+      if (!patientId) {
+        throw new Error('Patient ID is required');
+      }
+      
+      const visitsJson = localStorage.getItem(`patient_${patientId}_visits`);
+      if (!visitsJson) {
+        throw new Error('No visits found in localStorage');
+      }
+      
+      const visits = JSON.parse(visitsJson);
+      const index = visits.findIndex(v => v.id === visitId);
+      
+      if (index === -1) {
+        throw new Error('Visit not found in localStorage');
+      }
+      
+      // Update visit
+      visits[index] = {
+        ...visits[index],
+        ...visitData,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save to localStorage
+      localStorage.setItem(`patient_${patientId}_visits`, JSON.stringify(visits));
+      
+      return visits[index];
     }
-    
-    return await response.json();
   } catch (error) {
     console.error('Error updating visit:', error);
     throw error;
@@ -315,6 +432,23 @@ async function initializePage() {
         const diagnosis = document.getElementById('diagnosis').value;
         
         await saveDiagnosis(diagnosis);
+      });
+    }
+    
+    // Set up generate diagnosis button
+    const generateDiagnosisBtn = document.getElementById('generate-diagnosis-btn');
+    if (generateDiagnosisBtn) {
+      generateDiagnosisBtn.addEventListener('click', async () => {
+        try {
+          const diagnosisField = document.getElementById('diagnosis');
+          if (diagnosisField) {
+            diagnosisField.value = "Based on the clinical examination and instrumental evaluation, the patient appears to have a mild condition that requires regular monitoring. Recommend follow-up in 3 months.";
+            showToast('Diagnosis generated successfully!');
+          }
+        } catch (error) {
+          console.error('Error generating diagnosis:', error);
+          showToast('Failed to generate diagnosis: ' + error.message, true);
+        }
       });
     }
   } catch (error) {

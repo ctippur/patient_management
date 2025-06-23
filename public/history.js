@@ -43,11 +43,31 @@ function showToast(message, isError = false) {
 // Get patient by ID
 async function getPatientById(id) {
   try {
-    const response = await fetch(`${API_BASE_URL}/patient/${id}`);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Try API first
+    try {
+      const response = await fetch(`${API_BASE_URL}/patient/${id}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      return await response.json();
+    } catch (apiError) {
+      console.error('API error, falling back to localStorage:', apiError);
+      
+      // Fall back to localStorage
+      const patientsJson = localStorage.getItem('patients');
+      if (!patientsJson) {
+        throw new Error('No patients found in localStorage');
+      }
+      
+      const patients = JSON.parse(patientsJson);
+      const patient = patients.find(p => p.id === id);
+      
+      if (!patient) {
+        throw new Error('Patient not found in localStorage');
+      }
+      
+      return patient;
     }
-    return await response.json();
   } catch (error) {
     console.error('Error fetching patient:', error);
     throw error;
@@ -57,11 +77,20 @@ async function getPatientById(id) {
 // Get patient visits
 async function getPatientVisits(patientId) {
   try {
-    const response = await fetch(`${API_BASE_URL}/patient-visits/${patientId}`);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Try API first
+    try {
+      const response = await fetch(`${API_BASE_URL}/patient-visits/${patientId}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      return await response.json();
+    } catch (apiError) {
+      console.error('API error, falling back to localStorage:', apiError);
+      
+      // Fall back to localStorage
+      const visitsJson = localStorage.getItem(`patient_${patientId}_visits`);
+      return visitsJson ? JSON.parse(visitsJson) : [];
     }
-    return await response.json();
   } catch (error) {
     console.error('Error getting patient visits:', error);
     return [];
@@ -71,21 +100,51 @@ async function getPatientVisits(patientId) {
 // Update patient history
 async function updatePatientHistory(patientId, historyData) {
   try {
-    const response = await fetch(`${API_BASE_URL}/patient/${patientId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        history: historyData
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Try API first
+    try {
+      const response = await fetch(`${API_BASE_URL}/patient/${patientId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          history: historyData
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (apiError) {
+      console.error('API error, falling back to localStorage:', apiError);
+      
+      // Fall back to localStorage
+      const patientsJson = localStorage.getItem('patients');
+      if (!patientsJson) {
+        throw new Error('No patients found in localStorage');
+      }
+      
+      const patients = JSON.parse(patientsJson);
+      const index = patients.findIndex(p => p.id === patientId);
+      
+      if (index === -1) {
+        throw new Error('Patient not found in localStorage');
+      }
+      
+      // Update patient history
+      patients[index] = {
+        ...patients[index],
+        history: historyData,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('patients', JSON.stringify(patients));
+      
+      return patients[index];
     }
-    
-    return await response.json();
   } catch (error) {
     console.error('Error updating patient history:', error);
     throw error;
@@ -144,7 +203,7 @@ async function initializePage() {
       } else {
         const timelineHtml = visits.map(visit => `
           <div class="timeline-item">
-            <div class="timeline-date">${new Date(visit.date).toLocaleDateString()}</div>
+            <div class="timeline-date">${new Date(visit.date || visit.createdAt).toLocaleDateString()}</div>
             <div class="timeline-content">
               <h5>Clinical Exam</h5>
               <p>${visit.clinicalExam?.summary || 'No summary available'}</p>
@@ -154,7 +213,7 @@ async function initializePage() {
                   <p>${visit.diagnosis}</p>
                 </div>
               ` : ''}
-              <a href="clinical_eval.html?patientId=${patientId}&visitId=${visit.id}" class="btn btn-sm btn-info mt-2">View Details</a>
+              <a href="/clinical_eval.html?patientId=${patientId}&visitId=${visit.id}" class="btn btn-sm btn-info mt-2">View Details</a>
             </div>
           </div>
         `).join('');
